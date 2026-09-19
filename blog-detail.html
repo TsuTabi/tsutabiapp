@@ -9,17 +9,17 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/cookie-banner.js"></script>   
     <meta property="og:type" content="website">
-<meta property="og:url" content="https://tsutabi.com/"> <!-- Sitenizin güncel linki -->
-<meta property="og:title" content="TsuTabi - Başka Bir Öğrenim Deneyimi">
-<meta property="og:description" content="Dil öğrenimini hızlandırmak, sorularla pekiştirmek ve hemen üretimle kalıcılığı yakalamak için harika bir platform.">
-<meta property="og:image" content="https://tsutabi.com/og-image.png"> <!-- Paylaşıldığında görünecek görselin tam URL'si -->
+    <meta property="og:url" content="https://tsutabi.com/">
+    <meta property="og:title" content="TsuTabi - Başka Bir Öğrenim Deneyimi">
+    <meta property="og:description" content="Dil öğrenimini hızlandırmak, sorularla pekiştirmek ve hemen üretimle kalıcılığı yakalamak için harika bir platform.">
+    <meta property="og:image" content="https://tsutabi.com/og-image.png">
 
-<!-- Twitter / X İçin Ek Etiketler -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:url" content="https://tsutabi.com/">
-<meta name="twitter:title" content="TsuTabi - Kelime Öğrenme Yolculuğu">
-<meta property="twitter:description" content="Dil öğrenimini hızlandırmak, sorularla pekiştirmek ve hemen üretimle kalıcılığı yakalamak için harika bir platform.">
-<meta name="twitter:image" content="https://tsutabi.com/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://tsutabi.com/">
+    <meta name="twitter:title" content="TsuTabi - Kelime Öğrenme Yolculuğu">
+    <meta property="twitter:description" content="Dil öğrenimini hızlandırmak, sorularla pekiştirmek ve hemen üretimle kalıcılığı yakalamak için harika bir platform.">
+    <meta name="twitter:image" content="https://tsutabi.com/og-image.png">
+    
     <link rel="stylesheet" href="/style.css">
     
     <style>
@@ -98,7 +98,12 @@
 
     <div id="footer-placeholder" style="width: 100%; display: flex; flex-direction: column;"></div>
 
+    <!-- app.js en başta dahil ediliyor ki global değişkenler ve fonksiyonlar (supabaseClient vb.) tam olarak yüklensin -->
+    <script src="/app.js"></script>
+
     <script>
+        // İsim çakışması yaratmamak için app.js içinde tanımlı olan 
+        // currentUser, userProfile ve supabaseClient değişkenleri BURADA YENİDEN TANIMLANMADI.
         let currentBlogId = null;
         let resolvedVocabData = [];
         let userSavedWords = new Set();
@@ -117,7 +122,6 @@
         }
 
         async function initDynamicBlog() {
-            // URL'den page_url değerini yakala (örn: /blog/dijitalde-gulme -> dijitalde-gulme)
             const pathSegments = window.location.pathname.split('/').filter(Boolean);
             const pageUrl = pathSegments[pathSegments.length - 1];
 
@@ -126,7 +130,6 @@
                 return;
             }
 
-            // Supabase blogs tablosundan page_url ile eşleşeni çek
             const { data: blogData, error } = await supabaseClient
                 .from('blogs')
                 .select('*')
@@ -139,16 +142,16 @@
             }
 
             currentBlogId = blogData.blog_id;
-            document.title = `${blogData.title} - TsuTabi`;
             document.getElementById('blogTitle').innerText = blogData.title;
             document.getElementById('blogContent').innerText = blogData.content;
 
-            // Etiketler
+            // SEO Meta Güncellemesi
+            updatePageMetadata(blogData);
+
             if (blogData.tags) {
                 document.getElementById('blogTags').innerHTML = blogData.tags.split(',').map(t => `<span class="tag">#${escapeHtml(t.trim())}</span>`).join('');
             }
 
-            // Vocabulary (word_id dizisi) ile dictionary tablosundan kelimeleri çekme
             if (blogData.vocabulary && blogData.vocabulary.length > 0) {
                 const { data: dictData } = await supabaseClient
                     .from('dictionary')
@@ -298,28 +301,22 @@
             return str ? str.replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t])) : '';
         }
 
-        window.addEventListener('DOMContentLoaded', async () => {
-            await loadComponents();
-            await initApp();
-            setTimeout(initDynamicBlog, 300);
+        function updatePageMetadata(blogData) {
+            document.title = `${blogData.title} - TsuTabi`;
+            let metaDesc = document.querySelector('meta[name="description"]');
+            if (!metaDesc) {
+                metaDesc = document.createElement('meta');
+                metaDesc.name = 'description';
+                document.head.appendChild(metaDesc);
+            }
+            metaDesc.content = blogData.content ? blogData.content.substring(0, 150) + '...' : blogData.title;
+        }
+
+        // Not: app.js zaten loadComponents ve initApp tetiklediği için 
+        // burada sadece blog detayına özel fonksiyonu kısa bir gecikmeyle çağırıyoruz.
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initDynamicBlog, 350);
         });
-
-        // Blog verisi başarıyla çekildikten sonra bu fonksiyonu çağırabilirsiniz:
-function updatePageMetadata(blogData) {
-    // 1. Sekme Başlığını Değiştir (Örn: Dijitalde Gülme - TsuTabi)
-    document.title = `${blogData.title} - TsuTabi`;
-
-    // 2. Arama motorları için meta açıklamasını (description) yazının ilk 150 karakteri yap
-    let metaDesc = document.querySelector('meta[name="description"]');
-    if (!metaDesc) {
-        metaDesc = document.createElement('meta');
-        metaDesc.name = 'description';
-        document.head.appendChild(metaDesc);
-    }
-    // Yazının başından kısa bir özet alıyoruz (veya varsa veritabanındaki özet alanınız)
-    metaDesc.content = blogData.content ? blogData.content.substring(0, 150) + '...' : blogData.title;
-}
     </script>
-    <script src="/app.js"></script>
 </body>
 </html>
