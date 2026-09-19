@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TsuTabi - Akıllı Kelime Çalışma Kutusu</title>
+    <!-- Ortak Çerez ve Consent Mode Yönetimi -->
+    <script src="/cookie-banner.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #fdf4ff 0%, #e0e7ff 50%, #fae8ff 100%);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --backdrop-blur: blur(16px);
+            --text-main: #1e293b;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border-color: rgba(226, 232, 240, 0.8);
+            --border-light: #f1f5f9;
+            --primary-anime: #ec4899;
+            --primary-indigo: #6366f1;
+            --header-bg: rgba(255, 255, 255, 0.75);
+            --dropdown-bg: rgba(255, 255, 255, 0.95);
+            --dropdown-hover: rgba(241, 245, 249, 0.8);
+            --nickname-bg: rgba(248, 250, 252, 0.9);
+            --btn-bg: #f1f5f9;
+            --btn-hover: #e2e8f0;
+            --indigo-bg: #e0e7ff;
+            
+            --indigo-primary: #4f46e5;
+            --emerald-primary: #059669;
+            --emerald-bg: #d1fae5;
+            --emerald-dark: #047857;
+            --rose-primary: #e11d48;
+            --rose-bg: #ffe4e6;
+            --rose-dark: #be123c;
+            --amber-primary: #d97706;
+            --amber-bg: #fef3c7;
+        }
+
+        body.dark-mode {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --card-bg: rgba(30, 41, 59, 0.9);
+            --text-main: #cbd5e1;
+            --text-dark: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: rgba(51, 65, 85, 0.8);
+            --border-light: #334155;
+            --header-bg: rgba(15, 23, 42, 0.8);
+            --dropdown-bg: rgba(30, 41, 59, 0.95);
+            --dropdown-hover: rgba(51, 65, 85, 0.8);
+            --nickname-bg: rgba(15, 23, 42, 0.9);
+            --btn-bg: #1e293b;
+            --btn-hover: #334155;
+            --indigo-bg: #312e81;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        body {
+            user-select: none;
+            background: var(--bg-gradient); background-attachment: fixed;
+            color: var(--text-main); min-height: 100vh;
+            display: flex; flex-direction: column; overflow-x: hidden;
+            position: relative;
+        }
+
+        .hidden { display: none !important; }
+
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        @keyframes dots {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+        }
+
+        header { width: 100%; background: var(--header-bg); backdrop-filter: var(--backdrop-blur); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 40; padding: 0.75rem 1rem; }
+        @media (min-width: 1024px) { header { padding: 1rem 2rem; } }
+        .nav-container { width: 100%; max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+        .brand-container { display: flex; align-items: center; gap: 0.5rem; text-decoration: none; }
+        .nav-right { display: flex; align-items: center; gap: 0.75rem; }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem;
+            padding: 0.375rem 0.75rem; border-radius: 0.625rem; font-size: 0.75rem; font-weight: 700;
+            border: none; cursor: pointer; transition: all 0.2s; font-family: inherit; text-decoration: none;
+            white-space: nowrap; background: var(--btn-bg); color: var(--text-main);
+        }
+        .btn:hover { background: var(--btn-hover); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-anime { background: linear-gradient(135deg, var(--primary-anime) 0%, var(--primary-indigo) 100%); color: #fff !important; box-shadow: 0 4px 10px rgba(236, 72, 153, 0.2); }
+        .btn-emerald { background: var(--emerald-primary); color: #fff; }
+        .btn-rose { background: var(--rose-primary); color: #fff; }
+        .btn-amber { background: var(--amber-primary); color: #fff; }
+        .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-outline:hover { background: var(--btn-hover); border-color: var(--primary-anime); color: var(--primary-anime); }
+
+        .dropdown { position: relative; }
+        .dropdown-content {
+            visibility: hidden; opacity: 0; position: absolute; right: 0; top: 100%;
+            background: var(--dropdown-bg); backdrop-filter: var(--backdrop-blur); min-width: 180px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15); border-radius: 0.875rem;
+            border: 1px solid var(--border-color); overflow: hidden; z-index: 100;
+            margin-top: 0.5rem; transform: translateY(8px); transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .dropdown-content a, .dropdown-content button {
+            color: var(--text-main); padding: 0.625rem 1rem; text-decoration: none; display: block;
+            font-size: 0.75rem; font-weight: 600; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+        }
+        .dropdown-content a:hover, .dropdown-content button:hover { background: var(--dropdown-hover); color: var(--primary-anime); padding-left: 1.2rem; }
+        .dropdown:hover .dropdown-content { visibility: visible; opacity: 1; transform: translateY(0); }
+        .dropdown:hover .arrow { transform: rotate(180deg); }
+        .arrow { display: inline-block; transition: transform 0.25s ease; font-size: 0.65rem; }
+        .nickname-display { padding: 0.625rem 1rem; font-weight: 800; color: var(--text-dark); background: var(--nickname-bg); border-bottom: 1px solid var(--border-color); font-size: 0.75rem; }
+
+        .menu-toggle { display: none; flex-direction: column; cursor: pointer; gap: 4px; z-index: 110; }
+        .menu-toggle span { width: 22px; height: 2px; background-color: var(--text-main); border-radius: 2px; }
+        .mobile-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 90; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+        .mobile-overlay.active { opacity: 1; visibility: visible; }
+        .mobile-drawer { position: fixed; top: 0; right: -280px; width: 280px; height: 100%; background: var(--dropdown-bg); backdrop-filter: var(--backdrop-blur); box-shadow: -10px 0 25px rgba(0,0,0,0.2); z-index: 100; display: flex; flex-direction: column; padding: 1.5rem 1.25rem; gap: 0.75rem; transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1); overflow-y: auto; }
+        .mobile-drawer.active { right: 0; }
+        .mobile-drawer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); }
+        .mobile-drawer-link { text-decoration: none; color: var(--text-main); font-size: 0.85rem; font-weight: 700; padding: 0.4rem 0; background: none; border: none; text-align: left; cursor: pointer; }
+
+        .main-content-wrapper { flex: 1; width: 100%; max-width: 38rem; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; gap: 1rem; }
+
+        .promo-card { background: var(--card-bg); backdrop-filter: var(--backdrop-blur); border-radius: 1.5rem; border: 2px solid #fbcfe8; padding: 2.5rem 1.5rem; text-align: center; width: 100%; margin-top: 1rem; }
+        .promo-card h2 { font-size: 1.75rem; font-weight: 800; color: var(--text-dark); margin-bottom: 1rem; }
+        .promo-card p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 2rem; }
+
+        .study-box {
+            width: 100%; max-width: 38rem;
+            background: var(--card-bg); backdrop-filter: var(--backdrop-blur);
+            border-radius: 1.25rem; border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;
+        }
+
+        .session-progress-container { width: 100%; max-width: 38rem; background: var(--card-bg); backdrop-filter: var(--backdrop-blur); border: 1px solid var(--border-color); border-radius: 1.25rem; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); }
+        .session-info-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-weight: 700; color: var(--text-dark); }
+        .progress-bar-track { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(135deg, var(--primary-anime) 0%, var(--primary-indigo) 100%); width: 0%; transition: width 0.3s ease; border-radius: 4px; }
+        .skip-btn { background: none; border: none; color: var(--primary-indigo); font-size: 0.7rem; font-weight: 700; cursor: pointer; padding: 0.1rem 0.3rem; border-radius: 4px; }
+        .skip-btn:hover { background: var(--btn-hover); color: var(--primary-anime); }
+
+        .option-btn {
+            width: 100%; padding: 0.875rem 1rem; border-radius: 0.75rem; border: 1px solid var(--border-color);
+            background: var(--btn-bg); font-weight: 500; font-size: 0.875rem; color: var(--text-dark);
+            text-align: left; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+            position: relative; overflow: hidden; z-index: 1; transition: border-color 0.2s, color 0.2s;
+        }
+        .option-btn::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 0%; height: 100%;
+            z-index: -1; transition: width 0.4s ease-in-out;
+        }
+        .option-btn:hover:not(:disabled) { background: var(--btn-hover); border-color: var(--primary-indigo); }
+        
+        .option-correct::before { width: 100%; background-color: var(--emerald-dark); }
+        .option-correct { border-color: var(--emerald-dark) !important; color: #ffffff !important; font-weight: 700; }
+
+        .option-wrong::before { width: 100%; background-color: var(--rose-dark); }
+        .option-wrong { border-color: var(--rose-dark) !important; color: #ffffff !important; font-weight: 700; }
+
+        .badge { font-size: 0.6875rem; padding: 0.125rem 0.5rem; border-radius: 9999px; font-weight: 600; display: inline-block; }
+        .badge-indigo { background: var(--indigo-bg); color: var(--indigo-primary); }
+        .badge-emerald { background: var(--emerald-bg); color: var(--emerald-primary); }
+        .badge-rose { background: var(--rose-bg); color: var(--rose-primary); }
+
+        .tag-filters-wrapper { display: flex; flex-wrap: wrap; gap: 0.625rem; padding-top: 0.25rem; align-items: center; }
+        .tag-filter-btn { background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease; }
+        .tag-filter-btn:hover { background: var(--btn-hover); border-color: var(--primary-indigo); color: var(--primary-anime); }
+        .tag-filter-btn.active { background: linear-gradient(135deg, var(--primary-anime) 0%, var(--primary-indigo) 100%); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25); }
+        .tag-filter-btn.disabled-tag { background: var(--btn-bg); color: var(--text-muted); opacity: 0.6; border: 1px dashed var(--border-color); cursor: pointer; }
+        .tag-filter-btn.disabled-tag:hover { opacity: 1; border-color: var(--amber-primary); color: var(--amber-primary); }
+        .tag-filter-divider { width: 100%; height: 1px; background: var(--border-color); margin: 0.25rem 0; }
+
+        .type-filters-wrapper { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .type-filter-btn { background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 0.5rem 0.875rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease; flex: 1; text-align: center; }
+        .type-filter-btn:hover { background: var(--btn-hover); border-color: var(--primary-indigo); }
+        .type-filter-btn.active { background: linear-gradient(135deg, var(--primary-anime) 0%, var(--primary-indigo) 100%); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25); }
+
+        .kana-pool { display: flex; gap: 0.375rem; flex-wrap: wrap; justify-content: center; margin: 0.75rem 0; }
+        .kana-chip { padding: 0.5rem 0.875rem; background: var(--btn-bg); border: 1px solid var(--border-color); border-radius: 0.5rem; font-weight: 700; cursor: pointer; font-size: 0.95rem; color: var(--text-main); transition: transform 0.1s; }
+        .kana-chip:hover { background: var(--primary-indigo); color: #fff; transform: scale(1.05); }
+        
+        .slot-container { display: flex; gap: 0.375rem; justify-content: center; margin: 0.75rem 0; min-height: 2.75rem; align-items: center; flex-wrap: wrap; }
+        .kana-slot { width: 2.625rem; height: 2.625rem; border: 2px dashed var(--border-color); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; background: var(--btn-bg); color: var(--text-dark); cursor: pointer; transition: all 0.3s ease; }
+
+        .kana-slot.slot-correct { background-color: var(--emerald-dark) !important; border-color: var(--emerald-dark) !important; color: #ffffff !important; }
+        .kana-slot.slot-wrong { background-color: var(--rose-dark) !important; border-color: var(--rose-dark) !important; color: #ffffff !important; }
+
+        .listen-input-box {
+            padding: 0.625rem; border-radius: 0.5rem; border: 1px solid var(--border-color);
+            width: 100%; max-width: 18rem; font-size: 0.85rem; background: var(--btn-bg);
+            color: var(--text-main); text-align: center; transition: all 0.3s ease;
+        }
+        .listen-input-correct { background-color: var(--emerald-dark) !important; border-color: var(--emerald-dark) !important; color: #ffffff !important; font-weight: 700; }
+        .listen-input-wrong { background-color: var(--rose-dark) !important; border-color: var(--rose-dark) !important; color: #ffffff !important; font-weight: 700; }
+
+        /* --- MODERN TOAST BİLDİRİM STİLLERİ --- */
+        #toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            pointer-events: none;
+        }
+        .tsu-toast {
+            pointer-events: auto;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            backdrop-filter: var(--backdrop-blur);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 0.875rem 1.25rem;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 280px;
+            max-width: 380px;
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            opacity: 0;
+        }
+        .tsu-toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        .tsu-toast-icon {
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .tsu-toast-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            flex: 1;
+        }
+        .tsu-toast-title {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+        .tsu-toast-msg {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.35;
+        }
+        .tsu-toast.success { border-left: 4px solid var(--primary-anime); }
+        .tsu-toast.error { border-left: 4px solid #ef4444; }
+
+        footer { width: 100%; background: var(--header-bg); backdrop-filter: var(--backdrop-blur); border-top: 1px solid var(--border-color); padding: 1.25rem 2rem; display: flex; flex-direction: column; gap: 1rem; align-items: center; justify-content: space-between; margin-top: auto; }
+        @media (min-width: 768px) { footer { flex-direction: row; } }
+        .footer-brand { display: flex; align-items: center; gap: 0.5rem; font-weight: 800; font-size: 0.85rem; color: var(--text-dark); text-decoration: none; }
+        .social-links, .footer-links { display: flex; gap: 1.25rem; align-items: center; }
+        .footer-links a, .social-links a { text-decoration: none; color: var(--text-muted); font-size: 0.75rem; font-weight: 600; transition: color 0.2s; }
+        .footer-links a:hover, .social-links a:hover { color: var(--primary-anime); }
+
+        @media (max-width: 768px) {
+            .nav-right { display: none; }
+            .menu-toggle { display: flex; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Dinamik Toast Konteyneri -->
+    <div id="toast-container"></div>
+
+    <div id="navbar-placeholder"></div>
+
+    <div class="main-content-wrapper">
+        
+        <div id="authRequiredScreen" class="promo-card hidden">
+            <h2>Mini Sınav ile Bilgilerini Test Et!</h2>
+            <p>Kaydettiğin kelimelerle çoktan seçmeli, harf dizme ve sesli test sınavları oluşturmak için hemen hesabına giriş yap veya kayıt ol.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <a href="/register" class="btn" style="padding: 0.625rem 1.25rem;">Oturum Aç</a>
+                <a href="/register" class="btn btn-anime" style="padding: 0.625rem 1.25rem;">Kayıt Ol</a>
+            </div>
+        </div>
+
+        <div id="quizProgressContainer" class="session-progress-container hidden">
+            <div class="session-info-row">
+                <span id="quizSessionStatusText">Günün Kelimeleri Sınavı</span>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span id="quizSessionCountText">1 / 0</span>
+                    <button onclick="skipQuizSession()" id="quizSkipBtn" class="skip-btn" style="display: none;">Atla ➔</button>
+                </div>
+            </div>
+            <div class="progress-bar-track">
+                <div id="quizProgressBarFill" class="progress-bar-fill"></div>
+            </div>
+        </div>
+
+        <div id="quizAppContainer" class="study-box">
+            
+            <div id="setupScreen" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 0.75rem;">
+                    <h2 style="font-weight: 800; font-size: 1rem; color: var(--text-dark);">Kelime Çalışma Kutusu</h2>
+                    <span id="savedCountBadge" class="badge badge-indigo loading-dots">Yükleniyor</span>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">Çalışma Kaynağı / Filtre Seçimi</label>
+                    <div id="tagFiltersContainer" class="tag-filters-wrapper">
+                        <span class="badge badge-indigo loading-dots" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">Filtreler yükleniyor</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; border-top: 1px solid var(--border-light); padding-top: 0.75rem;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">Soru Tipi Filtreleri (İstediklerinizi seçin)</label>
+                    <div class="type-filters-wrapper">
+                        <button type="button" id="typeBtnMultiple" class="type-filter-btn active" onclick="toggleTypeFilter('multiple')">Çoktan Seçmeli</button>
+                        <button type="button" id="typeBtnRomaji" class="type-filter-btn active" onclick="toggleTypeFilter('romaji')">Harf Dizme</button>
+                        <button type="button" id="typeBtnListen" class="type-filter-btn" onclick="toggleTypeFilter('listen')">Sesli Test</button>
+                    </div>
+                </div>
+
+                <button onclick="startQuiz()" class="btn btn-emerald" style="width: 100%; padding: 0.875rem; font-size: 0.875rem;">
+                    🚀 Çalışmayı Başlat
+                </button>
+            </div>
+
+            <div id="quizScreen" class="hidden" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span id="questionCategoryLabel" class="badge badge-indigo">Soru Tipi</span>
+                    </div>
+                    <button onclick="resetToSetup()" class="btn btn-rose" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">Bitir</button>
+                </div>
+
+                <div id="activeQuestionCard" style="display: flex; flex-direction: column; gap: 1rem; min-height: 13rem; justify-content: center;"></div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; border-top: 1px solid var(--border-light); padding-top: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <button onclick="useHelp()" id="helpBtn" class="btn btn-amber" style="font-size: 0.7rem;">💡 İpucu Al</button>
+                    </div>
+                    <div id="helpOutput" style="font-size: 0.75rem; font-weight: 600; color: var(--amber-primary); min-height: 1rem;"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="/app.js"></script>
+
+    <script>
+        let allDictionaryCache = {}; 
+        let allSavedKanjiPool = [];       
+        let dailySessionKanjiPool = [];    
+        let dictionaryWordDetailsMap = {}; 
+        let activeTagFilter = 'GUNUN_KELIMELERI';       
+
+        let selectedTypes = {
+            multiple: true,
+            romaji: true,
+            listen: false
+        };
+
+        let questionQueueBuffer = []; 
+        let currentQuestionData = null;
+        let isHelpUsed = false;
+
+        let dailyQuizQueue = [];
+        let totalDailyLength = 0;
+        let currentDailyAnswered = 0;
+        let isDailyInfiniteMode = false;
+        let initialQuizCompleted = false;
+        let hasUpdatedQuizCompleted = false;
+        let currentUserId = null;
+        let todayStr = "";
+        let isAudioPlaying = false; 
+
+        const romajiExtraPool = ['a', 'i', 'u', 'e', 'o', 'k', 's', 't', 'n', 'h', 'm', 'r', 'y', 'w', 'g', 'z', 'd', 'b', 'p'];
+
+        /* --- TOAST BİLDİRİM TETİKLEYİCİSİ --- */
+        function showToast(message, type = 'success', title = '') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `tsu-toast ${type}`;
+            
+            const icon = type === 'success' ? '🌸' : '⚠️';
+            const defaultTitle = type === 'success' ? 'Harika!' : 'Dikkat!';
+            
+            toast.innerHTML = `
+                <div class="tsu-toast-icon">${icon}</div>
+                <div class="tsu-toast-content">
+                    <span class="tsu-toast-title">${title || defaultTitle}</span>
+                    <span class="tsu-toast-msg">${message}</span>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 10);
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function getUrlParameter(name) {
+            const regex = new RegExp('[?&]' + name + '=([^&#]*)');
+            const results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        async function initQuizApp() {
+            if (typeof loadComponents === 'function') {
+                await loadComponents();
+            }
+            if (typeof initApp === 'function') {
+                await initApp();
+            }
+
+            if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+                console.error("Supabase istemcisi yüklenemedi!");
+                return;
+            }
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session || !session.user) {
+                document.getElementById('authRequiredScreen').classList.remove('hidden');
+                document.getElementById('quizAppContainer').classList.add('hidden');
+                return;
+            } else {
+                currentUserId = session.user.id;
+                todayStr = new Date().toLocaleDateString('en-CA');
+                document.getElementById('authRequiredScreen').classList.add('hidden');
+                document.getElementById('quizAppContainer').classList.remove('hidden');
+                await fetchUserWords();
+            }
+        }
+
+        async function fetchUserWords() {
+            if (!currentUserId || typeof supabaseClient === 'undefined') return;
+            
+            todayStr = new Date().toLocaleDateString('en-CA');
+
+            const [savedWordsRes, sessionRes] = await Promise.all([
+                supabaseClient.from('saved_words').select('word_id').eq('user_id', currentUserId),
+                supabaseClient.from('daily_sessions').select('*').eq('user_id', currentUserId).maybeSingle()
+            ]);
+
+            let wordIds = [];
+            if (savedWordsRes.data) {
+                wordIds = [...new Set(savedWordsRes.data.map(item => item.word_id))];
+            }
+
+            let dailyWordIds = [];
+            if (sessionRes.data && sessionRes.data.date === todayStr && sessionRes.data.vocabulary) {
+                dailyWordIds = sessionRes.data.vocabulary;
+                initialQuizCompleted = !!sessionRes.data.quiz_completed;
+            }
+
+            let allCombinedIds = [...new Set([...wordIds, ...dailyWordIds])];
+
+            if (allCombinedIds.length > 0) {
+                const { data: dictData } = await supabaseClient
+                    .from('dictionary')
+                    .select('*')
+                    .in('word_id', allCombinedIds);
+
+                if (dictData) {
+                    dictionaryWordDetailsMap = {};
+                    allDictionaryCache = {};
+                    allSavedKanjiPool = [];
+                    dailySessionKanjiPool = [];
+
+                    dictData.forEach(d => {
+                        allDictionaryCache[d.kanji] = {
+                            word_id: d.word_id,
+                            kanji: d.kanji,
+                            kana: d.kana,
+                            romaji: d.romaji,
+                            meaning: d.meaning,
+                            tags: d.tags
+                        };
+                        dictionaryWordDetailsMap[d.kanji] = d;
+                        if (wordIds.includes(d.word_id)) {
+                            allSavedKanjiPool.push(d.kanji);
+                        }
+                    });
+
+                    if (sessionRes.data && sessionRes.data.date === todayStr && sessionRes.data.vocabulary) {
+                        sessionRes.data.vocabulary.forEach(id => {
+                            let found = dictData.find(d => d.word_id === id);
+                            if (found) dailySessionKanjiPool.push(found.kanji);
+                        });
+                    }
+                }
+            }
+
+            initTagFilters();
+        }
+
+        function filterDisplayTags(tagsArray) {
+            if (!tagsArray || !Array.isArray(tagsArray)) return [];
+            return tagsArray.map(tag => tag.trim()).filter(tag => tag && !tag.toUpperCase().includes('DERS'));
+        }
+
+        function initTagFilters() {
+            let tagCounts = {};
+            
+            allSavedKanjiPool.forEach(kanji => {
+                let dictItem = dictionaryWordDetailsMap[kanji];
+                if (dictItem) {
+                    filterDisplayTags(dictItem.tags).forEach(t => {
+                        tagCounts[t] = (tagCounts[t] || 0) + 1;
+                    });
+                }
+            });
+
+            let sortedTags = Object.keys(tagCounts).sort((a, b) => tagCounts[b] - tagCounts[a]);
+            
+            const urlTag = getUrlParameter('tag');
+            let availableTags = Object.keys(tagCounts);
+            if (urlTag && (availableTags.includes(urlTag) || urlTag === 'ALL' || urlTag === 'GUNUN_KELIMELERI')) {
+                activeTagFilter = urlTag;
+            } else if (!urlTag && activeTagFilter !== 'GUNUN_KELIMELERI') {
+                activeTagFilter = 'GUNUN_KELIMELERI';
+            }
+
+            renderTagFiltersUI(sortedTags, tagCounts);
+            updateEffectivePoolCount();
+        }
+
+        function renderTagFiltersUI(sortedTags, tagCounts) {
+            const container = document.getElementById('tagFiltersContainer');
+            if (!container) return;
+            
+            let gununCount = dailySessionKanjiPool.length;
+            let tumuCount = allSavedKanjiPool.length;
+
+            let html = '';
+            html += `<button onclick="handleTagClick('GUNUN_KELIMELERI', ${gununCount})" class="tag-filter-btn ${activeTagFilter === 'GUNUN_KELIMELERI' ? 'active' : ''}">⭐ Günün Kelimeleri</button>`;
+            html += `<button onclick="handleTagClick('ALL', ${tumuCount})" class="tag-filter-btn ${activeTagFilter === 'ALL' ? 'active' : ''}">Tümü</button>`;
+
+            let validTags = sortedTags.filter(t => (tagCounts[t] || 0) >= 4);
+            let lowTags = sortedTags.filter(t => (tagCounts[t] || 0) < 4);
+
+            validTags.forEach(tag => {
+                let count = tagCounts[tag];
+                html += `<button onclick="handleTagClick('${tag}', ${count})" class="tag-filter-btn ${activeTagFilter === tag ? 'active' : ''}">${tag}</button>`;
+            });
+
+            if (lowTags.length > 0) {
+                html += `<div class="tag-filter-divider"></div>`;
+                lowTags.forEach(tag => {
+                    let count = tagCounts[tag];
+                    html += `<button onclick="handleTagClick('${tag}', ${count})" class="tag-filter-btn disabled-tag" title="4 kelimeden az, tamamlamak için tıklayın">${tag} ⚠️</button>`;
+                });
+            }
+
+            container.innerHTML = html;
+        }
+
+        function handleTagClick(tag, count) {
+            if (tag !== 'GUNUN_KELIMELERI' && tag !== 'ALL' && count < 4) {
+                window.location.href = `dictionary?tag=${encodeURIComponent(tag)}`;
+                return;
+            }
+
+            activeTagFilter = tag;
+            const newUrl = tag === 'GUNUN_KELIMELERI' ? window.location.pathname : `${window.location.pathname}?tag=${encodeURIComponent(tag)}`;
+            window.history.replaceState({}, '', newUrl);
+
+            initTagFilters();
+        }
+
+        function toggleTypeFilter(type) {
+            selectedTypes[type] = !selectedTypes[type];
+            const btnEl = document.getElementById(`typeBtn${type.charAt(0).toUpperCase() + type.slice(1)}`);
+            if (btnEl) {
+                if (selectedTypes[type]) {
+                    btnEl.classList.add('active');
+                } else {
+                    btnEl.classList.remove('active');
+                }
+            }
+        }
+
+        function getActiveFilteredKanjiPool() {
+            if (activeTagFilter === 'GUNUN_KELIMELERI') {
+                return dailySessionKanjiPool;
+            }
+            if (activeTagFilter === 'ALL') {
+                return allSavedKanjiPool;
+            }
+            return allSavedKanjiPool.filter(kanji => {
+                let dictItem = dictionaryWordDetailsMap[kanji];
+                if (!dictItem) return false;
+                return filterDisplayTags(dictItem.tags).includes(activeTagFilter);
+            });
+        }
+
+        function updateEffectivePoolCount() {
+            const filteredPool = getActiveFilteredKanjiPool();
+            const badge = document.getElementById('savedCountBadge');
+            if (!badge) return;
+            badge.classList.remove('loading-dots');
+            if (activeTagFilter === 'GUNUN_KELIMELERI') {
+                badge.innerText = `${filteredPool.length} günün kelimesi`;
+            } else {
+                badge.innerText = `${filteredPool.length} kelime`;
+            }
+        }
+
+        async function fetchWordDetail(kanji) {
+            if (allDictionaryCache[kanji]) return allDictionaryCache[kanji];
+            if (typeof supabaseClient === 'undefined') return null;
+
+            const { data, error } = await supabaseClient
+                .from('dictionary')
+                .select('*')
+                .eq('kanji', kanji)
+                .maybeSingle();
+
+            if (error || !data) return null;
+            allDictionaryCache[kanji] = {
+                word_id: data.word_id,
+                kanji: data.kanji,
+                kana: data.kana,
+                romaji: data.romaji,
+                meaning: data.meaning,
+                tags: data.tags
+            };
+            return allDictionaryCache[kanji];
+        }
+
+        async function markQuizCompleted() {
+            if (!currentUserId || hasUpdatedQuizCompleted || activeTagFilter !== 'GUNUN_KELIMELERI') return;
+            hasUpdatedQuizCompleted = true;
+            initialQuizCompleted = true;
+
+            const { error } = await supabaseClient
+                .from('daily_sessions')
+                .update({ quiz_completed: true })
+                .eq('user_id', currentUserId)
+                .eq('date', todayStr);
+
+            if (error) {
+                console.error("quiz_completed güncellenirken hata oluştu:", error);
+            }
+        }
+
+        async function startQuiz() {
+            let activeQuestionTypes = Object.keys(selectedTypes).filter(t => selectedTypes[t]);
+            const currentPool = getActiveFilteredKanjiPool();
+
+            if (currentPool.length === 0) {
+                showToast("Seçilen filtreye uygun kelime bulunamadı!", "error", "Eksik Kelime");
+                return;
+            }
+            if (activeQuestionTypes.length === 0) {
+                showToast("En az bir soru tipi seçmelisiniz!", "error", "Seçim Yapılmadı");
+                return;
+            }
+
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('quizScreen').classList.remove('hidden');
+
+            const progressContainer = document.getElementById('quizProgressContainer');
+
+            if (activeTagFilter === 'GUNUN_KELIMELERI') {
+                progressContainer.classList.remove('hidden');
+                
+                let expandedList = [];
+                currentPool.forEach(kanji => {
+                    expandedList.push(kanji, kanji, kanji);
+                });
+                dailyQuizQueue = expandedList.sort(() => Math.random() - 0.5).sort(() => Math.random() - 0.5);
+                
+                totalDailyLength = dailyQuizQueue.length;
+                currentDailyAnswered = 0;
+                isDailyInfiniteMode = false;
+                hasUpdatedQuizCompleted = false;
+
+                updateDailyProgressUI();
+            } else {
+                progressContainer.classList.add('hidden');
+            }
+
+            questionQueueBuffer = [];
+            await replenishBuffer(3, activeQuestionTypes);
+            loadNextQuestionFromBuffer(activeQuestionTypes);
+        }
+
+        function updateDailyProgressUI() {
+            if (activeTagFilter !== 'GUNUN_KELIMELERI') return;
+            const countText = document.getElementById('quizSessionCountText');
+            const statusText = document.getElementById('quizSessionStatusText');
+            const fill = document.getElementById('quizProgressBarFill');
+            const skipBtn = document.getElementById('quizSkipBtn');
+
+            if (!isDailyInfiniteMode) {
+                statusText.innerText = "Günün Kelimeleri Sınavı";
+                countText.innerText = `${currentDailyAnswered} / ${totalDailyLength}`;
+                fill.style.width = totalDailyLength > 0 ? `${(currentDailyAnswered / totalDailyLength) * 100}%` : '0%';
+                skipBtn.style.display = initialQuizCompleted ? 'inline-block' : 'none';
+            } else {
+                statusText.innerText = "Sonsuz Mod (Rastgele Tekrar)";
+                countText.innerText = `${totalDailyLength} / ${totalDailyLength}`;
+                fill.style.width = `100%`;
+                skipBtn.style.display = 'none';
+            }
+        }
+
+        function skipQuizSession() {
+            if (activeTagFilter !== 'GUNUN_KELIMELERI') return;
+            isDailyInfiniteMode = true;
+            currentDailyAnswered = totalDailyLength;
+            dailyQuizQueue = [];
+            updateDailyProgressUI();
+            markQuizCompleted();
+        }
+
+        async function replenishBuffer(targetCount, activeTypes) {
+            const currentPool = getActiveFilteredKanjiPool();
+            while (questionQueueBuffer.length < targetCount && currentPool.length > 0) {
+                let randomKanji = null;
+
+                if (activeTagFilter === 'GUNUN_KELIMELERI') {
+                    if (!isDailyInfiniteMode && dailyQuizQueue.length > 0) {
+                        randomKanji = dailyQuizQueue.pop(); 
+                    } else {
+                        isDailyInfiniteMode = true;
+                        randomKanji = currentPool[Math.floor(Math.random() * currentPool.length)];
+                    }
+                } else {
+                    randomKanji = currentPool[Math.floor(Math.random() * currentPool.length)];
+                }
+
+                const randomType = activeTypes[Math.floor(Math.random() * activeTypes.length)];
+                const wordDetail = await fetchWordDetail(randomKanji);
+                if (wordDetail) {
+                    questionQueueBuffer.push({
+                        type: randomType,
+                        word: wordDetail
+                    });
+                }
+            }
+        }
+
+        async function loadNextQuestionFromBuffer(activeTypes) {
+            if (isAudioPlaying) return;
+
+            if (!activeTypes) {
+                activeTypes = Object.keys(selectedTypes).filter(t => selectedTypes[t]);
+            }
+
+            if (activeTagFilter === 'GUNUN_KELIMELERI' && !isDailyInfiniteMode && dailyQuizQueue.length > 0) {
+                currentDailyAnswered++;
+                
+                if (dailyQuizQueue.length === 0) {
+                    isDailyInfiniteMode = true;
+                    markQuizCompleted();
+                }
+                updateDailyProgressUI();
+            }
+
+            if (questionQueueBuffer.length === 0) {
+                await replenishBuffer(3, activeTypes);
+            }
+            
+            if (questionQueueBuffer.length === 0) {
+                showToast("Kelime detayları yüklenemedi!", "error", "Hata");
+                resetToSetup();
+                return;
+            }
+
+            currentQuestionData = questionQueueBuffer.shift();
+            replenishBuffer(3, activeTypes);
+
+            isHelpUsed = false;
+            document.getElementById('helpOutput').innerText = '';
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = currentQuestionData;
+            const labelEl = document.getElementById('questionCategoryLabel');
+            const cardEl = document.getElementById('activeQuestionCard');
+
+            if (q.type === 'multiple') {
+                labelEl.innerText = "Çoktan Seçmeli";
+                cardEl.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="font-size: 2.5rem; font-weight: 800; color: var(--text-dark);">${q.word.kanji}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Anlamını seçin</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;" id="testOptions"></div>
+                `;
+                setupMultipleChoices(q.word);
+            } else if (q.type === 'romaji') {
+                labelEl.innerText = "Harf Dizme";
+                setupRomajiQuestion(q.word);
+            } else if (q.type === 'listen') {
+                labelEl.innerText = "Sesli Test";
+                setupListenQuestion(q.word);
+            }
+        }
+
+        async function setupMultipleChoices(word) {
+            const currentPool = getActiveFilteredKanjiPool();
+            let wrongKanjiList = currentPool.filter(k => k !== word.kanji).sort(() => Math.random() - 0.5).slice(0, 3);
+            
+            if (wrongKanjiList.length < 3) {
+                let extra = allSavedKanjiPool.filter(k => k !== word.kanji && !wrongKanjiList.includes(k)).sort(() => Math.random() - 0.5).slice(0, 3 - wrongKanjiList.length);
+                wrongKanjiList = [...wrongKanjiList, ...extra];
+            }
+
+            let choices = [{ text: word.meaning, isCorrect: true }];
+            
+            for (let k of wrongKanjiList) {
+                let detail = await fetchWordDetail(k);
+                if (detail) choices.push({ text: detail.meaning, isCorrect: false });
+            }
+            choices.sort(() => Math.random() - 0.5);
+
+            const optContainer = document.getElementById('testOptions');
+            if (!optContainer) return;
+
+            choices.forEach(ch => {
+                let btn = document.createElement('button');
+                btn.className = "option-btn";
+                btn.innerHTML = `<span>${ch.text}</span>`;
+                btn.onclick = () => {
+                    for (let b of optContainer.children) b.disabled = true;
+                    if (ch.isCorrect) {
+                        btn.className = "option-btn option-correct";
+                    } else {
+                        btn.className = "option-btn option-wrong";
+                        for (let b of optContainer.children) {
+                            if (b.innerText === word.meaning) b.className = "option-btn option-correct";
+                        }
+                    }
+                    setTimeout(() => loadNextQuestionFromBuffer(), 1000);
+                };
+                optContainer.appendChild(btn);
+            });
+        }
+
+        function setupRomajiQuestion(word) {
+            let romajiStr = (word.romaji || word.kana || '').toLowerCase();
+            let romajiChars = romajiStr.split('');
+            let slots = new Array(romajiChars.length).fill(null);
+
+            let filteredExtras = romajiExtraPool.filter(ch => !romajiChars.includes(ch)).sort(() => Math.random() - 0.5);
+            let poolItems = [...romajiChars, ...filteredExtras.slice(0, 3)].sort(() => Math.random() - 0.5);
+
+            let isFinished = false;
+
+            function renderRomajiUI() {
+                let html = `
+                    <div style="text-align: center;">
+                        <div style="font-size: 2.25rem; font-weight: 800; color: var(--text-dark);">${word.kanji}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Romaji okunuşunu harf harf dizin</div>
+                    </div>
+                    
+                    <div id="feedbackMessage" style="text-align: center; font-weight: 800; font-size: 1rem; min-height: 1.5rem; margin-top: 0.25rem;"></div>
+
+                    <div class="slot-container" id="slotContainer"></div>
+                    <div class="kana-pool" id="romajiPool"></div>
+                `;
+                document.getElementById('activeQuestionCard').innerHTML = html;
+
+                const slotC = document.getElementById('slotContainer');
+                slots.forEach((val, idx) => {
+                    let slot = document.createElement('div');
+                    slot.className = "kana-slot";
+                    if (val) {
+                        slot.innerText = val.char;
+                    }
+                    slot.onclick = () => {
+                        if (isFinished || !slots[idx]) return;
+                        poolItems[slots[idx].poolIndex] = slots[idx].char;
+                        slots[idx] = null;
+                        renderRomajiUI();
+                    };
+                    slotC.appendChild(slot);
+                });
+
+                const poolC = document.getElementById('romajiPool');
+                poolItems.forEach((char, idx) => {
+                    if (char !== null) {
+                        let chip = document.createElement('div');
+                        chip.className = "kana-chip";
+                        chip.innerText = char;
+                        chip.onclick = () => {
+                            if (isFinished) return;
+
+                            let emptyIdx = slots.indexOf(null);
+                            if (emptyIdx !== -1) {
+                                slots[emptyIdx] = { char, poolIndex: idx };
+                                poolItems[idx] = null;
+                                renderRomajiUI();
+                                
+                                if (!slots.includes(null)) {
+                                    isFinished = true;
+                                    let formedWord = slots.map(s => s.char).join('');
+                                    let isCorrect = (formedWord === romajiStr);
+                                    
+                                    const allSlots = slotC.children;
+                                    for (let slotEl of allSlots) {
+                                        slotEl.className = `kana-slot ${isCorrect ? 'slot-correct' : 'slot-wrong'}`;
+                                    }
+
+                                    const feedbackEl = document.getElementById('feedbackMessage');
+                                    if (feedbackEl) {
+                                        if (isCorrect) {
+                                            feedbackEl.style.color = 'var(--emerald-primary, #059669)';
+                                            feedbackEl.innerText = '🎉 Doğru!';
+                                        } else {
+                                            feedbackEl.style.color = 'var(--rose-primary, #e11d48)';
+                                            feedbackEl.innerText = ` Doğrusu: ${romajiStr}`;
+                                        }
+                                    }
+
+                                    setTimeout(() => loadNextQuestionFromBuffer(), 1500);
+                                }
+                            }
+                        };
+                        poolC.appendChild(chip);
+                    }
+                });
+            }
+            renderRomajiUI();
+        }
+
+        function setupListenQuestion(word) {
+            let html = `
+                <div style="text-align: center; display: flex; flex-direction: column; gap: 0.875rem; align-items: center; width: 100%;">
+                    <button onclick="playAudio('${word.kanji}')" class="btn btn-anime" style="padding: 0.75rem 1.5rem; border-radius: 9999px;">
+                        🔊 Sesi Dinle
+                    </button>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Duyduğunuz kelimenin Romaji okunuşunu yazın</div>
+                    <input type="text" id="listenInput" class="listen-input-box" placeholder="Romaji (örn: neko)..." oninput="handleListenInput(this)">
+                    <button onclick="checkListen('${word.romaji}')" id="listenCheckBtn" class="btn btn-emerald" style="width: 100%; max-width: 18rem;" disabled>Kontrol Et</button>
+                </div>
+            `;
+            document.getElementById('activeQuestionCard').innerHTML = html;
+            playAudio(word.kanji);
+        }
+
+        function handleListenInput(inputEl) {
+            const checkBtn = document.getElementById('listenCheckBtn');
+            if (!checkBtn) return;
+            if (inputEl.value.trim().length > 0) {
+                checkBtn.disabled = false;
+            } else {
+                checkBtn.disabled = true;
+            }
+        }
+
+        function playAudio(text) {
+            if ('speechSynthesis' in window) {
+                isAudioPlaying = true;
+                window.speechSynthesis.cancel(); 
+                let utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP';
+                
+                utterance.onend = () => {
+                    isAudioPlaying = false; 
+                };
+                utterance.onerror = () => {
+                    isAudioPlaying = false;
+                };
+
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function checkListen(correctRomaji) {
+            if (isAudioPlaying) return;
+
+            const inputEl = document.getElementById('listenInput');
+            const checkBtn = document.getElementById('listenCheckBtn');
+            if (!inputEl || !inputEl.value.trim()) return;
+            
+            const val = inputEl.value.trim().toLowerCase();
+            inputEl.disabled = true;
+            if (checkBtn) checkBtn.disabled = true;
+
+            if (val === correctRomaji.toLowerCase()) {
+                inputEl.className = "listen-input-box listen-input-correct";
+            } else {
+                inputEl.className = "listen-input-box listen-input-wrong";
+                inputEl.value = `${val} (Doğrusu: ${correctRomaji})`;
+            }
+            
+            setTimeout(() => loadNextQuestionFromBuffer(), 1200);
+        }
+
+        function useHelp() {
+            if (isHelpUsed || !currentQuestionData) return;
+            isHelpUsed = true;
+            let w = currentQuestionData.word;
+            
+            let helpText = "";
+            if (w.kana) {
+                helpText = `💡 İpucu (Kana): ${w.kana}`;
+            } else if (w.romaji) {
+                helpText = `💡 İpucu (Romaji): ${w.romaji}`;
+            } else {
+                helpText = `💡 İpucu (Anlam): ${w.meaning}`;
+            }
+
+            document.getElementById('helpOutput').innerText = helpText;
+        }
+
+        function resetToSetup() {
+            window.speechSynthesis.cancel();
+            isAudioPlaying = false;
+            document.getElementById('quizProgressContainer').classList.add('hidden');
+            document.getElementById('quizScreen').classList.add('hidden');
+            document.getElementById('setupScreen').classList.remove('hidden');
+            fetchUserWords();
+        }
+
+        window.addEventListener("DOMContentLoaded", async () => {
+            await initQuizApp();
+        });
+    </script>
+</body>
+</html>

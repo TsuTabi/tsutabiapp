@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マーケット言語シミュレーション MVP</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #222; }
+
+        /* OYUN ALANI */
+        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; overflow: hidden; }
+        
+        #market-track {
+            display: flex; height: 100%; position: absolute; left: 0;
+            transition: transform 0.4s ease-in-out;
+        }
+
+        .aisle {
+            height: 100%; display: flex; flex-direction: column; justify-content: center;
+            border-right: 4px dashed #444; position: relative; background: #f1f2f6;
+        }
+
+        /* GİRİŞ BÖLÜMÜ */
+        #entrance-aisle {
+            width: 100vw; background: #2f3542; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; color: white; text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .entrance-content { z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px; }
+        #entrance-aisle h1 { font-size: 32px; color: #2ed573; }
+        #entrance-aisle p { font-size: 16px; color: #a4b0be; }
+
+        /* REYONLAR VE RAFLAR */
+        .shelf-row {
+            height: 28vh; border-bottom: 10px solid #8b4513; display: flex; align-items: flex-end;
+            padding: 0 30px; gap: 20px; background: #eccc68; position: relative;
+        }
+        .product-item {
+            width: 100px; height: 100px; background: white; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.15); transition: transform 0.1s;
+        }
+        .product-item:hover { transform: scale(1.08); }
+        .product-item img { width: 70px; height: 70px; object-fit: contain; }
+
+        /* DİĞER REYONLAR */
+        .dummy-aisle { width: 450px; background: #dfe4ea; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #747d8c; font-weight: bold; }
+
+        /* KASA */
+        #checkout-counter {
+            width: 400px; background: #1e272e; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; color: white; font-size: 26px; font-weight: bold;
+            position: relative; overflow: hidden; text-align: center;
+        }
+        .checkout-content { z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px; }
+
+        /* HAREKET KONTROL BUTONLARI */
+        .controls {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: none; gap: 20px; z-index: 50;
+        }
+        .controls button { padding: 15px 35px; font-size: 18px; font-weight: bold; background: #2ed573; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .controls button:active { transform: scale(0.95); }
+
+        /* PANELLER VE BAŞLANGIÇ KONUMU (ORTA) */
+        .top-panels {
+            position: fixed; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); 
+            display: flex; flex-direction: column; gap: 15px; z-index: 100; width: 340px;
+            transition: all 0.5s ease-in-out;
+        }
+        .top-panels.game-started {
+            top: 15px; left: auto; right: 15px;
+            transform: none;
+        }
+
+        .panel { background: rgba(255,255,255,0.98); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column; position: relative; }
+        
+        /* ŞIK VE MİNİK OKUMA YARDIMI SEKME TASARIMI (TAB) */
+        .reading-tab-container {
+            background: #dfe4ea; padding: 3px; border-radius: 8px; display: flex; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.5s ease-in-out;
+        }
+        .reading-tab {
+            flex: 1; border: none; background: transparent; padding: 5px 8px; font-size: 11px; font-weight: bold; cursor: pointer; z-index: 2; color: #333; text-align: center; transition: color 0.3s;
+        }
+        .reading-tab.active { color: #075e54; }
+        .reading-tab-indicator {
+            position: absolute; top: 3px; bottom: 3px; width: calc(50% - 3px);
+            background: #ffffff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease-in-out; left: 3px;
+        }
+        .reading-tab-container.romaji-active .reading-tab-indicator {
+            transform: translateX(100%);
+        }
+
+        /* WHATSAPP HEADER STİLİ */
+        .phone-header { background: #075e54; color: white; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; position: relative; }
+        .phone-header-info { display: flex; flex-direction: column; }
+        .phone-header-info span:first-child { font-weight: bold; }
+        .phone-header-info span:last-child { font-size: 10px; color: #d1d8e0; }
+        .phone-header-icons { font-size: 16px; letter-spacing: 5px; cursor: pointer; display: flex; gap: 12px; }
+        .phone-header-icons span { cursor: pointer; }
+
+        /* 3 SEÇENEKLİ MENÜ (İNGİLİZCE) */
+        #dropdown-menu {
+            position: absolute; right: 10px; top: 40px; background: white; color: #333;
+            border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 100; width: 140px; font-size: 12px;
+        }
+        #dropdown-menu div { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+        #dropdown-menu div:hover { background: #f1f2f6; }
+
+        /* VIEW CONTACT PROFİL EKRANI */
+        #contact-profile-modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f0f2f5;
+            display: none; flex-direction: column; z-index: 150; color: #333;
+        }
+        .profile-header { background: #075e54; color: white; padding: 12px; display: flex; align-items: center; gap: 15px; font-size: 15px; font-weight: bold; cursor: pointer; }
+        .profile-body { padding: 25px 15px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+        .profile-avatar { width: 80px; height: 80px; background: #ccc; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; color: white; font-weight: bold; margin-bottom: 10px; }
+
+        /* ARAMA EKRANI MODALI */
+        #call-modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #075e54;
+            display: none; flex-direction: column; align-items: center; justify-content: space-between; padding: 30px 10px; z-index: 150; color: white; text-align: center;
+            transition: background 0.3s;
+        }
+
+        #phone-messages { height: 160px; overflow-y: auto; padding: 10px; background: #e5ddd5; display: flex; flex-direction: column; gap: 6px; font-size: 12px; position: relative; }
+        
+        /* CHAT BALONLARI VE BİLDİRİMLER */
+        .msg { padding: 8px 10px; border-radius: 8px; max-width: 85%; word-break: break-word; line-height: 1.3; }
+        .msg.incoming { background: #ffffff; align-self: flex-start; border-top-left-radius: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.1); color: #333; }
+        .msg.outgoing { background: #dcf8c6; align-self: flex-end; border-top-right-radius: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.1); color: #333; }
+        .typing { font-style: italic; color: #555; background: #fff; padding: 5px 10px; border-radius: 8px; align-self: flex-start; font-size: 11px; }
+        .system-notification { align-self: center; background: rgba(225, 205, 195, 0.9); color: #555; font-size: 11px; padding: 5px 10px; border-radius: 6px; text-align: center; margin: 5px 0; max-width: 90%; }
+
+        /* ALT CHAT GİRİŞ KISMI (İKON BUTON) */
+        .phone-input-area { display: flex; background: #f0f0f0; padding: 8px; border-top: 1px solid #ddd; align-items: center; gap: 5px; }
+        .phone-input-area input { flex: 1; padding: 6px 10px; border: 1px solid #ccc; border-radius: 20px; outline: none; font-size: 12px; background: #fff; }
+        .phone-input-area button { background: #128c7e; color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+
+        /* SEPET PANELİ */
+        #cart-panel { display: none; }
+        .cart-header { background: #2f3542; color: white; padding: 8px 12px; font-size: 13px; font-weight: bold; }
+        #cart-list { max-height: 250px; min-height: 40px; overflow-y: auto; font-size: 12px; padding: 8px; background: #fff; display: flex; flex-direction: column; gap: 5px; }
+        .cart-row { display: flex; justify-content: space-between; align-items: center; background: #f1f2f6; padding: 5px 8px; border-radius: 6px; }
+
+        /* SÜRE KÖŞESİ */
+        #timer-box {
+            position: fixed; top: 15px; left: 15px; background: #ff4757; color: white;
+            padding: 10px 20px; font-size: 18px; font-weight: bold; border-radius: 8px; z-index: 50;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: none;
+        }
+
+        /* SAĞ ALT KÖŞE (SORU İŞARETİ VE SOL YANINDA MİNİK OKUMA YARDIMI) */
+        .bottom-right-container {
+            position: fixed; bottom: 20px; right: 20px; display: flex; align-items: center; gap: 8px; z-index: 1000;
+        }
+        #help-btn {
+            width: 45px; height: 45px; background: #2ed573; color: white; border: none; border-radius: 50%;
+            font-size: 22px; font-weight: bold; cursor: pointer; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        #help-modal {
+            position: fixed; bottom: 80px; right: 20px; width: 300px; background: white;
+            border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); padding: 20px;
+            z-index: 1000; display: none; flex-direction: column; gap: 10px; color: #333; font-size: 13px;
+        }
+        #help-modal h3 { color: #075e54; margin-bottom: 5px; }
+        #help-modal p { line-height: 1.4; color: #555; }
+        #help-modal button { background: #075e54; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; align-self: flex-end; font-weight: bold; }
+
+        /* SONUÇ EKRANI */
+        #result-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 200; color: white;
+        }
+        .result-box { background: #333; padding: 30px; border-radius: 12px; width: 400px; text-align: center; }
+        .result-box h2 { margin-bottom: 15px; color: #2ed573; }
+        .result-box button { background: #2ed573; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 6px; cursor: pointer; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <!-- SÜRE GÖSTERGESİ -->
+    <div id="timer-box">じかん: --びょう</div>
+
+    <!-- PANELLER -->
+    <div class="top-panels" id="topPanelsContainer">
+        
+        <!-- WHATSAPP CHAT PANELİ -->
+        <div class="panel">
+            <!-- VIEW CONTACT PROFİL EKRANI -->
+            <div id="contact-profile-modal">
+                <div class="profile-header" id="back-to-chat">
+                    <span>←</span> <span id="profile-header-name">プロフィール</span>
+                </div>
+                <div class="profile-body">
+                    <div class="profile-avatar" id="profile-initial">あ</div>
+                    <h3 id="profile-name" style="font-size: 18px;">名前</h3>
+                    <p style="font-size: 12px; color: #666;">オンライン</p>
+                </div>
+            </div>
+
+            <!-- ARAMA EKRANI -->
+            <div id="call-modal">
+                <div style="font-size: 14px; margin-top: 10px;" id="call-status-top">かけなおしています...</div>
+                <div>
+                    <h3 id="call-name" style="font-size: 20px; margin-top: 5px;">名前</h3>
+                    <p style="font-size: 12px; color: #d1d8e0; margin-top: 5px;" id="call-status-sub">よびだしちゅう...</p>
+                </div>
+                <button id="end-call-btn" style="background: #ff4757; color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold;">つうわをきる</button>
+            </div>
+
+            <div class="phone-header">
+                <div class="phone-header-info">
+                    <span id="chat-contact-name">よみこみちゅう...</span>
+                    <span>オンライン</span>
+                </div>
+                <div class="phone-header-icons">
+                    <span id="phone-call-btn" title="デンワ">📞</span>
+                    <span id="menu-dots-btn" title="メニュー">⋮</span>
+                </div>
+                <!-- 3 SEÇENEKLİ MENÜ -->
+                <div id="dropdown-menu">
+                    <div id="menu-view-contact">View Profile</div>
+                    <div id="menu-clear-chat">Clear Chat</div>
+                    <div id="menu-block" data-action="block">Block</div>
+                </div>
+            </div>
+
+            <div id="phone-messages">
+                <div class="msg incoming" data-kana="ねえ！かえりにすうぱあでかいものしてきてくれる？" data-romaji="Nee! Kaeri ni suupaa de kaimono shite kite kureru?">ねえ！かえりにすうぱあでかいものしてきてくれる？</div>
+            </div>
+            
+            <!-- CHAT GİRİŞ VE İKONLU GÖNDER BUTONU -->
+            <div class="phone-input-area">
+                <input type="text" id="chat-input" value="いまスーパーのまえにいます。" data-kana="いまスーパーのまえにいます。" data-romaji="Ima suupaa no mae ni imasu.">
+                <button id="send-msg-btn">➤</button>
+            </div>
+        </div>
+
+        <!-- İLK MESAJLAŞMANIN ALTINDAKİ OKUMA YARDIMI (BAŞLANGIÇTA BURADA) -->
+        <div class="reading-tab-container" id="readingTabContainer">
+            <div class="reading-tab-indicator"></div>
+            <button class="reading-tab active" onclick="switchReadingMode('kana')">Kana</button>
+            <button class="reading-tab" onclick="switchReadingMode('romaji')">Romaji</button>
+        </div>
+
+        <!-- SEPET PANELİ -->
+        <div class="panel" id="cart-panel">
+            <div class="cart-header">かいものかあと</div>
+            <div id="cart-list">からっぽ</div>
+        </div>
+    </div>
+
+    <!-- SAĞ ALT KÖŞE: SORU İŞARETİ VE SOL YANINDA MİNİK OKUMA YARDIMI -->
+    <div class="bottom-right-container">
+        <div id="floatingReadingTabSlot"></div>
+        <button id="help-btn" onclick="toggleHelpModal()">?</button>
+    </div>
+
+    <div id="help-modal">
+        <h3>Nasıl Oynanır?</h3>
+        <p>1. Ortadaki telefon ekranından ilk mesajı göndererek markete giriş yapın.</p>
+        <p>2. Dilediğiniz zaman <b>Kana</b> veya <b>Romaji</b> okuma modunu değiştirebilirsiniz.</p>
+        <p>3. Gelen alışveriş listesindeki ürünleri toplayın ve süre bitmeden kasaya varın!</p>
+        <button onclick="toggleHelpModal()">Anladım</button>
+    </div>
+
+    <!-- OYUN ALANI -->
+    <div id="game-container">
+        <div id="market-track">
+            <!-- 1. GİRİŞ BÖLÜMÜ -->
+            <div id="entrance-aisle" class="aisle">
+                <div class="entrance-content">
+                    <h1>スーパー入口</h1>
+                    <p>スマホからメッセージを送ってスーパーに入り、買い物を始めましょう！</p>
+                </div>
+            </div>
+
+            <!-- 2. MANAV REYONU -->
+            <div id="groceries-aisle" class="aisle" style="background: #e8cc88;">
+                <div class="shelf-row" id="shelf-3"></div>
+                <div class="shelf-row" id="shelf-2"></div>
+                <div class="shelf-row" id="shelf-1"></div>
+            </div>
+
+            <!-- 3. DİĞER REYONLAR -->
+            <div class="dummy-aisle">パンコーナー</div>
+            <div class="dummy-aisle">冷凍食品コーナー</div>
+
+            <!-- 4. KASA -->
+            <div id="checkout-counter">
+                <div class="checkout-content">
+                    レジ
+                    <div style="font-size: 12px; color: #a4b0be;">ここへ来てお会計をしてください</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HAREKET KONTROLLERİ -->
+    <div class="controls" id="game-controls">
+        <button id="move-left">◀ ひだり</button>
+        <button id="move-right">みぎ ▶</button>
+    </div>
+
+    <!-- SONUÇ EKRANI -->
+    <div id="result-modal">
+        <div class="result-box">
+            <h2 id="result-title">買い物が完了しました</h2>
+            <div id="result-details" style="text-align: left; font-size: 14px; line-height: 1.5; margin-top: 15px;"></div>
+            <button onclick="location.reload()">もう一度プレイ</button>
+        </div>
+    </div>
+
+    <script>
+        let currentReadingMode = 'kana';
+
+        function switchReadingMode(mode) {
+            currentReadingMode = mode;
+            
+            document.querySelectorAll('.reading-tab-container').forEach(container => {
+                if (mode === 'romaji') container.classList.add('romaji-active');
+                else container.classList.remove('romaji-active');
+            });
+
+            document.querySelectorAll('.reading-tab').forEach((tab, index) => {
+                if ((mode === 'kana' && index % 2 === 0) || (mode === 'romaji' && index % 2 !== 0)) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+
+            document.querySelectorAll('[data-kana]').forEach(el => {
+                el.innerText = el.getAttribute(`data-${mode}`);
+            });
+            document.querySelectorAll('input[data-kana]').forEach(el => {
+                el.value = el.getAttribute(`data-${mode}`);
+            });
+            updateCartUI();
+        }
+
+        function toggleHelpModal() {
+            const modal = document.getElementById('help-modal');
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        const japaneseNames = [
+            "はると", "さくら", "りん", "たくみ", "めい", 
+            "そら", "あおい", "ゆと", "ひなた", "ゆい"
+        ];
+        
+        const randomContactName = japaneseNames[Math.floor(Math.random() * japaneseNames.length)];
+        document.getElementById("chat-contact-name").innerText = randomContactName;
+        document.getElementById("call-name").innerText = randomContactName;
+        document.getElementById("profile-name").innerText = randomContactName;
+        document.getElementById("profile-header-name").innerText = randomContactName;
+        document.getElementById("profile-initial").innerText = randomContactName.charAt(0);
+
+        let isBlocked = false;
+
+        const menuDotsBtn = document.getElementById("menu-dots-btn");
+        const dropdownMenu = document.getElementById("dropdown-menu");
+        menuDotsBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            dropdownMenu.style.display = dropdownMenu.style.display === "flex" ? "none" : "flex";
+        });
+        window.addEventListener("click", () => { dropdownMenu.style.display = "none"; });
+
+        document.getElementById("menu-view-contact").addEventListener("click", () => {
+            document.getElementById("contact-profile-modal").style.display = "flex";
+        });
+        document.getElementById("back-to-chat").addEventListener("click", () => {
+            document.getElementById("contact-profile-modal").style.display = "none";
+        });
+
+        document.getElementById("menu-clear-chat").addEventListener("click", () => {
+            document.getElementById("phone-messages").innerHTML = "";
+        });
+
+        // BLOKLAMA / UNBLOKLAMA İŞLEMİ
+        const menuBlockBtn = document.getElementById("menu-block");
+        menuBlockBtn.addEventListener("click", () => {
+            const phoneMessages = document.getElementById("phone-messages");
+            const action = menuBlockBtn.getAttribute("data-action");
+
+            if (action === "block") {
+                isBlocked = true;
+                menuBlockBtn.setAttribute("data-action", "unblock");
+                menuBlockBtn.innerText = "Unblock";
+
+                // Ortada WhatsApp tarzı engellendi yazısı
+                const blockNotice = document.createElement("div");
+                blockNotice.className = "system-notification";
+                blockNotice.id = "block-system-msg";
+                blockNotice.setAttribute("data-kana", "この連絡先をブロックしました。");
+                blockNotice.setAttribute("data-romaji", "This contact is blocked.");
+                blockNotice.innerText = currentReadingMode === 'romaji' ? "This contact is blocked." : "この連絡先をブロックしました。";
+                phoneMessages.appendChild(blockNotice);
+                phoneMessages.scrollTop = phoneMessages.scrollHeight;
+
+            } else {
+                isBlocked = false;
+                menuBlockBtn.setAttribute("data-action", "block");
+                menuBlockBtn.innerText = "Block";
+
+                // Engellendi bildirimini kaldır
+                const notice = document.getElementById("block-system-msg");
+                if (notice) notice.remove();
+
+                // Süreden 15 saniye düş
+                timeLeft -= 15;
+                if (timeLeft < 0) timeLeft = 0;
+                updateTimerDisplay();
+
+                // Sinirli mesaj gönder
+                phoneMessages.innerHTML += `<div class="typing" data-kana="にゅうりょくちゅう..." data-romaji="nyuuryokuchuu...">にゅうりょくちゅう...</div>`;
+                phoneMessages.scrollTop = phoneMessages.scrollHeight;
+
+                setTimeout(() => {
+                    phoneMessages.querySelector(".typing")?.remove();
+                    const angryKana = "なんでブロックするの！？いそがしいのに！";
+                    const angryRomaji = "Nande burokku suru no!? Isogashii noni!";
+                    phoneMessages.innerHTML += `<div class="msg incoming" data-kana="${angryKana}" data-romaji="${angryRomaji}">${currentReadingMode === 'romaji' ? angryRomaji : angryKana}</div>`;
+                    phoneMessages.scrollTop = phoneMessages.scrollHeight;
+                }, 1200);
+            }
+        });
+
+        const phoneCallBtn = document.getElementById("phone-call-btn");
+        const callModal = document.getElementById("call-modal");
+        const endCallBtn = document.getElementById("end-call-btn");
+
+        phoneCallBtn.addEventListener("click", () => {
+            callModal.style.display = "flex";
+            callModal.style.background = "#075e54";
+            document.getElementById("call-status-top").innerText = "かけなおしています...";
+            document.getElementById("call-status-sub").innerText = "よびだしちゅう...";
+
+            setTimeout(() => {
+                if (callModal.style.display === "flex") {
+                    callModal.style.background = "#c0392b";
+                    document.getElementById("call-status-top").innerText = "つうわしゅうりょう";
+                    document.getElementById("call-status-sub").innerText = "おといあわせちゅう";
+                    setTimeout(() => { callModal.style.display = "none"; }, 1000);
+                }
+            }, 1000);
+        });
+
+        endCallBtn.addEventListener("click", () => { callModal.style.display = "none"; });
+
+        const allGroceries = [
+            { id: "apple", kana: "りんご", romaji: "ringo", icon: "images/products/groceries/apple.svg" },
+            { id: "banana", kana: "バナナ", romaji: "banana", icon: "images/products/groceries/banana.svg" },
+            { id: "orange", kana: "オレンジ", romaji: "orenji", icon: "images/products/groceries/orange.svg" },
+            { id: "strawberry", kana: "いちご", romaji: "ichigo", icon: "images/products/groceries/strawberry.svg" },
+            { id: "tomato", kana: "トマト", romaji: "tomato", icon: "images/products/groceries/tomato.svg" },
+            { id: "potato", kana: "じゃがいも", romaji: "jagaimo", icon: "images/products/groceries/potato.svg" },
+            { id: "onion", kana: "たまねぎ", romaji: "tamanegi", icon: "images/products/groceries/onion.svg" },
+            { id: "carrot", kana: "にんじん", romaji: "ninjin", icon: "images/products/groceries/carrot.svg" },
+            { id: "broccoli", kana: "ブロッコリー", romaji: "burokkorii", icon: "images/products/groceries/broccoli.svg" },
+            { id: "lemon", kana: "レモン", romaji: "remon", icon: "images/products/groceries/lemon.svg" },
+            { id: "cucumber", kana: "きゅうり", romaji: "kyuuri", icon: "images/products/groceries/cucumber.svg" },
+            { id: "pepper", kana: "ピーマン", romaji: "piiman", icon: "images/products/groceries/pepper.svg" },
+            { id: "mushroom", kana: "きのこ", romaji: "kinoko", icon: "images/products/groceries/mushroom.svg" },
+            { id: "cabbage", kana: "キャベツ", romaji: "kyabetu", icon: "images/products/groceries/cabbage.svg" }
+        ];
+
+        let cart = {}; 
+        let shoppingList = {}; 
+        let currentTranslateX = 0;
+        let timeLeft = 0; 
+        let timerInterval;
+        let gameStarted = false;
+        let timerStarted = false;
+        let isListFullySent = false;
+
+        const chatInput = document.getElementById("chat-input");
+        chatInput.readOnly = true;
+
+        document.getElementById("send-msg-btn").addEventListener("click", () => {
+            const inputField = document.getElementById("chat-input");
+            const phoneMessages = document.getElementById("phone-messages");
+            const userText = inputField.value.trim();
+            if (!userText) return;
+
+            if (!gameStarted) {
+                gameStarted = true;
+                
+                document.getElementById("topPanelsContainer").classList.add("game-started");
+                document.getElementById("cart-panel").style.display = "flex";
+
+                const readingTab = document.getElementById("readingTabContainer");
+                const floatingSlot = document.getElementById("floatingReadingTabSlot");
+                if (readingTab && floatingSlot) {
+                    readingTab.style.width = "130px";
+                    readingTab.style.background = "rgba(255,255,255,0.95)";
+                    readingTab.style.boxShadow = "0 4px 10px rgba(0,0,0,0.3)";
+                    floatingSlot.appendChild(readingTab);
+                }
+
+                phoneMessages.innerHTML += `<div class="msg outgoing" data-kana="${inputField.getAttribute('data-kana')}" data-romaji="${inputField.getAttribute('data-romaji')}">${inputField.getAttribute(`data-${currentReadingMode}`)}</div>`;
+                inputField.value = "";
+                inputField.setAttribute('data-kana', '');
+                inputField.setAttribute('data-romaji', '');
+                inputField.readOnly = false;
+                phoneMessages.scrollTop = phoneMessages.scrollHeight;
+
+                document.getElementById("game-controls").style.display = "flex";
+                initGameSequence();
+            } else {
+                phoneMessages.innerHTML += `<div class="msg outgoing" data-kana="${userText}" data-romaji="${userText}">${userText}</div>`;
+                inputField.value = "";
+                phoneMessages.scrollTop = phoneMessages.scrollHeight;
+
+                if (isBlocked) return; // Blokluysa cevap vermez
+
+                phoneMessages.innerHTML += `<div class="typing" data-kana="にゅうりょくちゅう..." data-romaji="nyuuryokuchuu...">にゅうりょくちゅう...</div>`;
+                phoneMessages.scrollTop = phoneMessages.scrollHeight;
+
+                setTimeout(() => {
+                    if (isBlocked) return;
+                    phoneMessages.querySelector(".typing")?.remove();
+                    let replyKana = "";
+                    let replyRomaji = "";
+                    if (!isListFullySent) {
+                        replyKana = "ちょっとまって、りすとをかきおわるまでまって";
+                        replyRomaji = "Chotto matte, risuto o kakiowaru taku matte";
+                    } else {
+                        replyKana = currentScenarioKanaPrefix + " ぜんぶかいたよ、かってきてね";
+                        replyRomaji = currentScenarioRomajiPrefix + " Zenbu kaita yo, katte kite ne";
+                    }
+                    phoneMessages.innerHTML += `<div class="msg incoming" data-kana="${replyKana}" data-romaji="${replyRomaji}">${currentReadingMode === 'romaji' ? replyRomaji : replyKana}</div>`;
+                    phoneMessages.scrollTop = phoneMessages.scrollHeight;
+                }, 1500);
+            }
+        });
+
+        function initGameSequence() {
+            initGroceriesAisle();
+            generateShoppingListAndScenario();
+            setTimeout(() => {
+                currentTranslateX -= window.innerWidth;
+                document.getElementById("market-track").style.transform = `translateX(${currentTranslateX}px)`;
+            }, 1000);
+        }
+
+        function initGroceriesAisle() {
+            const shuffled = [...allGroceries].sort(() => 0.5 - Math.random());
+            const shelf1 = document.getElementById("shelf-1");
+            const shelf2 = document.getElementById("shelf-2");
+            const shelf3 = document.getElementById("shelf-3");
+
+            shelf1.innerHTML = "";
+            shelf2.innerHTML = "";
+            shelf3.innerHTML = "";
+
+            shuffled.forEach((item, index) => {
+                const itemElem = document.createElement("div");
+                itemElem.className = "product-item";
+                itemElem.innerHTML = `<img src="${item.icon}" alt="${item.id}" onerror="this.src='https://via.placeholder.com/64'">`;
+                
+                itemElem.addEventListener("click", () => addToCart(item));
+
+                if (index % 3 === 0) shelf1.appendChild(itemElem);
+                else if (index % 3 === 1) shelf2.appendChild(itemElem);
+                else shelf3.appendChild(itemElem);
+            });
+
+            const columnCount = Math.ceil(shuffled.length / 3);
+            document.getElementById("groceries-aisle").style.width = (columnCount * 130 + 100) + "px";
+        }
+
+        let currentScenarioKanaPrefix = "はやく";
+        let currentScenarioRomajiPrefix = "Hayaku";
+
+        function generateShoppingListAndScenario() {
+            const scenarios = [
+                { kanaText: "きゅういそいで！これらをかってきて：", romajiText: "Kyuu isoide! Korera o katte kite:", kanaPrefix: "いそいで！", romajiPrefix: "Isoide!", time: 65, min: 5, max: 10 },
+                { kanaText: "はやくきて、これらがひつようなの：", romajiText: "Hayaku kite, korera ga hitsuyou nano:", kanaPrefix: "はやく！", romajiPrefix: "Hayaku!", time: 80, min: 8, max: 14 },
+                { kanaText: "じかんがあるときに、これらをかってきて：", romajiText: "Jikan ga aru toki ni, korera o katte kite:", kanaPrefix: "よろしく！", romajiPrefix: "Yoroshiku!", time: 100, min: 12, max: 18 }
+            ];
+            
+            const chosenScenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+            timeLeft = chosenScenario.time;
+            currentScenarioKanaPrefix = chosenScenario.kanaPrefix;
+            currentScenarioRomajiPrefix = chosenScenario.romajiPrefix;
+
+            const count = Math.floor(Math.random() * (chosenScenario.max - chosenScenario.min + 1)) + chosenScenario.min;
+            const selectedItems = [...allGroceries].sort(() => 0.5 - Math.random()).slice(0, count);
+            
+            selectedItems.forEach(item => {
+                shoppingList[item.id] = { kanaName: item.kana, romajiName: item.romaji, count: Math.floor(Math.random() * 2) + 1 };
+            });
+
+            simulateIncomingMessages(chosenScenario.kanaText, chosenScenario.romajiText, selectedItems);
+        }
+
+        function simulateIncomingMessages(kanaHeader, romajiHeader, items) {
+            const phoneDiv = document.getElementById("phone-messages");
+            
+            setTimeout(() => {
+                if (isBlocked) return;
+                phoneDiv.innerHTML += `<div class="typing" data-kana="にゅうりょくちゅう..." data-romaji="nyuuryokuchuu...">にゅうりょくちゅう...</div>`;
+                phoneDiv.scrollTop = phoneDiv.scrollHeight;
+
+                setTimeout(() => {
+                    if (isBlocked) {
+                        phoneDiv.querySelector(".typing")?.remove();
+                        return;
+                    }
+                    phoneDiv.querySelector(".typing")?.remove();
+                    phoneDiv.innerHTML += `<div class="msg incoming" data-kana="${kanaHeader}" data-romaji="${romajiHeader}">${currentReadingMode === 'romaji' ? romajiHeader : kanaHeader}</div>`;
+                    phoneDiv.scrollTop = phoneDiv.scrollHeight;
+
+                    if (!timerStarted) {
+                        timerStarted = true;
+                        document.getElementById("timer-box").style.display = "block";
+                        startTimer();
+                    }
+
+                    let index = 0;
+                    function sendNextItem() {
+                        if (index < items.length) {
+                            if (isBlocked) {
+                                setTimeout(sendNextItem, 2000); // Blokluysa beklemeye devam et
+                                return;
+                            }
+                            phoneDiv.innerHTML += `<div class="typing" data-kana="にゅうりょくちゅう..." data-romaji="nyuuryokuchuu...">にゅうりょくちゅう...</div>`;
+                            phoneDiv.scrollTop = phoneDiv.scrollHeight;
+                            
+                            setTimeout(() => {
+                                if (isBlocked) {
+                                    phoneDiv.querySelector(".typing")?.remove();
+                                    setTimeout(sendNextItem, 2000);
+                                    return;
+                                }
+                                phoneDiv.querySelector(".typing")?.remove();
+                                const item = items[index];
+                                const kText = `+ ${shoppingList[item.id].count}こ の ${item.kana}`;
+                                const rText = `+ ${shoppingList[item.id].count}x ${item.romaji}`;
+                                phoneDiv.innerHTML += `<div class="msg incoming" data-kana="${kText}" data-romaji="${rText}">${currentReadingMode === 'romaji' ? rText : kText}</div>`;
+                                phoneDiv.scrollTop = phoneDiv.scrollHeight;
+                                index++;
+                                
+                                if (index === items.length) {
+                                    isListFullySent = true;
+                                }
+                                sendNextItem();
+                            }, 5000);
+                        }
+                    }
+                    sendNextItem();
+                }, 5000);
+            }, 3000);
+        }
+
+        function addToCart(item) {
+            if (!cart[item.id]) cart[item.id] = { kanaName: item.kana, romajiName: item.romaji, count: 0 };
+            cart[item.id].count++;
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const cartList = document.getElementById("cart-list");
+            cartList.innerHTML = "";
+            if (Object.keys(cart).length === 0) {
+                cartList.innerHTML = currentReadingMode === 'romaji' ? "Empty" : "からっぽ";
+                return;
+            }
+            for (let id in cart) {
+                const itemName = currentReadingMode === 'romaji' ? cart[id].romajiName : cart[id].kanaName;
+                const unitStr = currentReadingMode === 'romaji' ? "ea" : "こ";
+                const row = document.createElement("div");
+                row.className = "cart-row";
+                row.innerHTML = `<span>${itemName} (${cart[id].count}${unitStr})</span> <button style="background:#ff4757; color:white; border:none; padding:2px 6px; border-radius:4px; cursor:pointer;" onclick="removeFromCart('${id}')">-</button>`;
+                cartList.appendChild(row);
+            }
+        }
+
+        window.removeFromCart = function(id) {
+            if (cart[id]) {
+                cart[id].count--;
+                if (cart[id].count <= 0) delete cart[id];
+                updateCartUI();
+            }
+        }
+
+        function startTimer() {
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    showResult(false, currentReadingMode === 'romaji' ? "Time's up! Failed." : "じかんぎれ！しっぱいしました。");
+                    return;
+                }
+                timeLeft--;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const timerBox = document.getElementById("timer-box");
+            timerBox.innerText = currentReadingMode === 'romaji' ? `Time: ${timeLeft}s` : `じかん: ${timeLeft}びょう`;
+        }
+
+        const scrollAmount = 350;
+
+        document.getElementById("move-left").addEventListener("click", () => {
+            if (currentTranslateX < 0) {
+                currentTranslateX += scrollAmount;
+                if(currentTranslateX > 0) currentTranslateX = 0;
+                document.getElementById("market-track").style.transform = `translateX(${currentTranslateX}px)`;
+            }
+        });
+
+        document.getElementById("move-right").addEventListener("click", () => {
+            currentTranslateX -= scrollAmount;
+            document.getElementById("market-track").style.transform = `translateX(${currentTranslateX}px)`;
+            checkCheckoutPosition();
+        });
+
+        function checkCheckoutPosition() {
+            const checkoutElem = document.getElementById("checkout-counter");
+            const rect = checkoutElem.getBoundingClientRect();
+            if (rect.left <= window.innerWidth / 2) {
+                setTimeout(() => {
+                    if (gameStarted) {
+                        clearInterval(timerInterval);
+                        checkCheckoutResults();
+                    }
+                }, 400); 
+            }
+        }
+
+        function checkCheckoutResults() {
+            let missing = [];
+            let extra = [];
+            let success = true;
+
+            for (let id in shoppingList) {
+                let requiredCount = shoppingList[id].count;
+                let userCount = cart[id] ? cart[id].count : 0;
+                let itemName = currentReadingMode === 'romaji' ? shoppingList[id].romajiName : shoppingList[id].kanaName;
+                if (userCount < requiredCount) {
+                    missing.push(`${itemName} (Missing: ${requiredCount - userCount})`);
+                    success = false;
+                } else if (userCount > requiredCount) {
+                    extra.push(`${itemName} (Extra: ${userCount - requiredCount})`);
+                    success = false;
+                }
+            }
+
+            for (let id in cart) {
+                if (!shoppingList[id]) {
+                    let itemName = currentReadingMode === 'romaji' ? cart[id].romajiName : cart[id].kanaName;
+                    extra.push(`${itemName} (Unwanted item)`);
+                    success = false;
+                }
+            }
+
+            let msgHTML = "";
+            if (success) {
+                msgHTML = `<p style="color:#2ed573; font-weight:bold;">Great job! All items are correct and you reached checkout in time.</p>`;
+            } else {
+                msgHTML = `<p style="color:#ff4757; font-weight:bold;">Mistakes found at checkout!</p>`;
+                if (missing.length > 0) msgHTML += `<br><b>Missing:</b><br>` + missing.join("<br>");
+                if (extra.length > 0) msgHTML += `<br><br><b>Extra/Wrong:</b><br>` + extra.join("<br>");
+            }
+
+            showResult(success, msgHTML);
+        }
+
+        function showResult(isSuccess, htmlContent) {
+            document.getElementById("result-title").innerText = isSuccess ? "Success!" : "Failed!";
+            document.getElementById("result-title").style.color = isSuccess ? "#2ed573" : "#ff4757";
+            document.getElementById("result-details").innerHTML = htmlContent;
+            document.getElementById("result-modal").style.display = "flex";
+        }
+        alert("Bu sayfa test aşamasındadır!")
+    </script>
+</body>
+</html>

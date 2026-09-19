@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TsuTabi - Hakkında</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+    <!-- Supabase JS Kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Ortak Çerez ve Consent Mode Yönetimi -->
+    <script src="/cookie-banner.js"></script>
+    <!-- Tüm Sayfalar İçin Ortak CSS (Navbar, Footer, Butonlar vb.) -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <style>
+        /* Sadece 'About' (Hakkında) Sayfasına Özel Stiller */
+        .main-content-wrapper { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem 3rem 1rem; }
+        .about-container { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 1.5rem; }
+        .anime-card { background: var(--card-bg); backdrop-filter: var(--backdrop-blur); border-radius: 1.5rem; border: 2px solid #fbcfe8; box-shadow: 0 10px 30px rgba(236, 72, 153, 0.15); padding: 1.5rem; position: relative; overflow: hidden; }
+        @media (min-width: 768px) { .anime-card { padding: 2.5rem; } }
+        .anime-card::before { content: "源"; position: absolute; right: -15px; bottom: -30px; font-size: 13rem; color: rgba(236, 72, 153, 0.04); font-weight: 900; z-index: 0; pointer-events: none; }
+        .content-header { text-align: center; margin-bottom: 2rem; position: relative; z-index: 1; }
+        .content-header h2 { font-family: 'Bangers', cursive, sans-serif; font-size: 2.5rem; letter-spacing: 2px; background: linear-gradient(135deg, #ec4899 0%, #6366f1 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.25rem; }
+        .story-section { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 1.25rem; }
+        .story-box { background: var(--nickname-bg); border-radius: 0.85rem; padding: 1.25rem; border: 1px solid var(--border-color); border-left: 5px solid var(--primary-anime); box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .story-box h3 { font-size: 1.05rem; font-weight: 800; color: var(--text-dark); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .story-box p { font-size: 0.875rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem; }
+        .story-box p:last-of-type { margin-bottom: 0; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar Dinamik Olarak Buraya Gelecek -->
+    <div id="navbar-placeholder"></div>
+
+    <!-- Hakkında İçerik Alanı -->
+    <div class="main-content-wrapper">
+        <div class="about-container">
+            <div class="anime-card">
+                <div class="content-header">
+                    <h2>Hakkında</h2>
+                    <p>Son Güncelleme Eylül 2026</p>
+                </div>
+
+                <div class="story-section">
+                    <div class="story-box">
+                        <h3>🌸 Başlangıcı</h3>
+                        <p>İstenilen kelimelerin hızla çalışılıp farklı sorularla pekiştirilip kullanıma teşvik ederek kalıcı öğrenmeyi sağlamayı amaçlayan bir uygulama olarak tasarlandı</p>
+                    </div>
+
+                    <div class="story-box">
+                        <h3>⚡ Nasıl Çalışır?</h3>
+                        <p>Sözlükten kelimelerinizi seçersiniz. Onları çalışır ve pekiştirirsiniz. Pekiştirme için test, harf dizme ve duyduduğunu anlama olarak 3 soru tipimiz var. Sonra da üreterek öğrenimi teşvik için Günlük aracımız ile cümle kurarsınız ve sürtünmeyi 0'a indirmek için Q Panel ile hemen aradığınızı bulup ister kullanır geçer isterseniz de Öğrenme Havuzuna atarak sonra çalılabilirsiniz. Nerede kullanıldığını bizzat görerek sizin için öğrenmenin mantıklı olup olmadığını hızla kararverirsiniz!</p>
+                    </div>
+
+                    <div class="story-box">
+                        <h3>⚡ Önemli</h3>
+                        <p>Çalışma Alanı'nda size içerik sunmak ve Blog sayfasında yorumlar hizmetini verebilmek için verilerinizi topluyoruz. Detaylı bilgiler için bu sayfalarımıza bakabilirsiniz!</p>
+                        <a href="/privacy" class="btn btn-anime">Gizlilik Politikası</a>
+                        <a href="/kvkk" class="btn btn-anime">Aydınlatma Metni</a>
+                        <a href="/terms" class="btn btn-anime">Hizmet Koşulları</a>
+                        <a href="/cookie-policy" class="btn btn-anime">Çerezler</a>
+                    </div>
+
+                    <div class="story-box" style="border-left-color: #6366f1;">
+                        <h3>📜 Geri Bildirim</h3>
+                        <p>Bize ileteceğin bir şey olursa iletişim sayfasını kullan! (Mühür bilmek gerekmez!!!)</p>
+                        <a href="/contact" class="btn btn-anime">İletişim</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Dinamik Olarak Buraya Gelecek -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Tüm Ortak Mantık ve Bileşen Yükleyici -->
+    <script src="/app.js"></script>
+</body>
+</html>

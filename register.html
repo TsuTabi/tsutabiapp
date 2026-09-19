@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TsuTabi - Kimlik Doğrulama</title>
+    
+    <!-- Çerez ve Consent Mode Yönetimi -->
+    <script src="/cookie-banner.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Supabase JS Kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Ortak CSS Dosyası -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <style>
+        /* --- SAYFAYA ÖZEL EK STİLLER --- */
+        .auth-main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            width: 100%;
+        }
+        .auth-card {
+            background: var(--card-bg);
+            backdrop-filter: var(--backdrop-blur);
+            border: 1px solid var(--border-color);
+            padding: 2.5rem 2rem;
+            border-radius: 1.5rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .auth-header {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .auth-header h2 { font-size: 1.5rem; font-weight: 800; color: var(--text-dark); }
+        .auth-header p { font-size: 0.8rem; color: var(--text-muted); }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .form-group label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+        
+        .password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .password-wrapper .form-input {
+            padding-right: 2.5rem;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 0.75rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toggle-password:hover {
+            color: var(--primary-anime);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--btn-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            font-size: 0.8rem;
+            color: var(--text-dark);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-input:focus {
+            border-color: var(--primary-anime);
+            box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.15);
+        }
+
+        /* Şifre Kriterleri Kontrol Listesi */
+        .password-checklist {
+            font-size: 0.7rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            margin-top: 0.2rem;
+            padding-left: 0.2rem;
+        }
+        .checklist-item {
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .checklist-item.valid {
+            color: #10b981;
+        }
+        .checklist-item.valid::before {
+            content: "✓";
+            font-weight: bold;
+        }
+        .checklist-item.invalid::before {
+            content: "•";
+        }
+
+        /* Eşleşme Kontrol Yazısı */
+        .match-feedback {
+            font-size: 0.7rem;
+            margin-top: 0.2rem;
+            font-weight: 600;
+        }
+        .match-feedback.match { color: #10b981; }
+        .match-feedback.mismatch { color: #ef4444; }
+
+        .checkbox-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            line-height: 1.4;
+        }
+        .checkbox-container input {
+            accent-color: var(--primary-anime);
+            margin-top: 0.1rem;
+            cursor: pointer;
+        }
+        .checkbox-container a {
+            color: var(--primary-anime);
+            text-decoration: underline;
+            font-weight: 600;
+        }
+
+        .auth-switch {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .auth-switch a {
+            color: var(--primary-anime);
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .auth-switch a:hover { text-decoration: underline; }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+            padding: 0.6rem 0.8rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: none;
+        }
+
+        /* --- MODERN TOAST BİLDİRİM STİLLERİ --- */
+        #toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            pointer-events: none;
+        }
+        .tsu-toast {
+            pointer-events: auto;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            backdrop-filter: var(--backdrop-blur);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 0.875rem 1.25rem;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 280px;
+            max-width: 380px;
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            opacity: 0;
+        }
+        .tsu-toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        .tsu-toast-icon {
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .tsu-toast-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            flex: 1;
+        }
+        .tsu-toast-title {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+        .tsu-toast-msg {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.35;
+        }
+        .tsu-toast.success { border-left: 4px solid var(--primary-anime); }
+        .tsu-toast.error { border-left: 4px solid #ef4444; }
+
+        /* Spinner Animasyonu */
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #ffffff;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            animation: rotation 0.8s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body style="display: flex; flex-direction: column; min-height: 100vh;">
+
+    <!-- Dinamik Toast Konteyneri -->
+    <div id="toast-container"></div>
+
+    <!-- Navbar Dinamik Olarak Buraya Gelecek -->
+    <div id="navbar-placeholder"></div>
+
+    <main class="auth-main">
+        <div class="auth-card" id="authCardContainer"></div>
+    </main>
+
+    <!-- Footer Dinamik Olarak Buraya Gelecek -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Sayfaya Özel Auth Mantığı -->
+    <script>
+        let currentView = 'login'; 
+
+        /* --- TOAST BİLDİRİM TETİKLEYİCİSİ --- */
+        function showToast(message, type = 'success', title = '') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `tsu-toast ${type}`;
+            
+            const icon = type === 'success' ? '🌸' : '⚠️';
+            const defaultTitle = type === 'success' ? 'Harika!' : 'Dikkat!';
+            
+            toast.innerHTML = `
+                <div class="tsu-toast-icon">${icon}</div>
+                <div class="tsu-toast-content">
+                    <span class="tsu-toast-title">${title || defaultTitle}</span>
+                    <span class="tsu-toast-msg">${message}</span>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 10);
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        async function initAuthApp() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('type') === 'signup') {
+                currentView = 'register';
+            }
+            renderAuthForm();
+        }
+
+        function switchView(view) {
+            currentView = view;
+            const newUrl = view === 'register' ? '?type=signup' : window.location.pathname;
+            window.history.pushState({ path: newUrl }, '', newUrl);
+            renderAuthForm();
+        }
+
+        function togglePassword(inputId, btnElement) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                btnElement.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                btnElement.textContent = '👁️';
+            }
+        }
+
+        function validatePasswordStrength(password) {
+            const lengthCheck = document.getElementById('lengthCheck');
+            const uppercaseCheck = document.getElementById('uppercaseCheck');
+            const lowercaseCheck = document.getElementById('lowercaseCheck');
+            const numberCheck = document.getElementById('numberCheck');
+
+            if (!lengthCheck) return;
+
+            const hasLength = password.length >= 8;
+            const hasUpper = /[A-Z]/.test(password);
+            const hasLower = /[a-z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+
+            lengthCheck.className = `checklist-item ${hasLength ? 'valid' : 'invalid'}`;
+            uppercaseCheck.className = `checklist-item ${hasUpper ? 'valid' : 'invalid'}`;
+            lowercaseCheck.className = `checklist-item ${hasLower ? 'valid' : 'invalid'}`;
+            numberCheck.className = `checklist-item ${hasNumber ? 'valid' : 'invalid'}`;
+        }
+
+        function checkPasswordMatch() {
+            const pass = document.getElementById('regPassword').value;
+            const confirmPass = document.getElementById('regPasswordConfirm').value;
+            const feedbackEl = document.getElementById('matchFeedback');
+
+            if (!feedbackEl) return;
+
+            if (!confirmPass) {
+                feedbackEl.textContent = '';
+                return;
+            }
+
+            if (pass === confirmPass) {
+                feedbackEl.textContent = 'Şifreler eşleşiyor.';
+                feedbackEl.className = 'match-feedback match';
+            } else {
+                feedbackEl.textContent = 'Şifreler eşleşmiyor!';
+                feedbackEl.className = 'match-feedback mismatch';
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorEl = document.getElementById('authError');
+            const btn = document.getElementById('loginBtn');
+
+            errorEl.style.display = 'none';
+            
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Giriş Yapılıyor...';
+
+            await supabaseClient.auth.signOut();
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) {
+                errorEl.textContent = error.message;
+                errorEl.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                return;
+            }
+
+            currentUser = data.user;
+            await fetchProfile(currentUser.id);
+            
+            window.location.href = '/dashboard';
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            const nickname = document.getElementById('regNickname').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+            const isAccepted = document.getElementById('regTerms').checked;
+            const errorEl = document.getElementById('authError');
+            const btn = document.getElementById('regBtn');
+
+            errorEl.style.display = 'none';
+
+            if (password !== passwordConfirm) {
+                errorEl.textContent = 'Şifreler birbiriyle uyuşmuyor!';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+                errorEl.textContent = 'Şifreniz güvenlik kriterlerini karşılamıyor!';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Kayıt Yapılıyor...';
+
+            await supabaseClient.auth.signOut();
+
+            const { data, error } = await supabaseClient.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        nickname: nickname,
+                        is_policies_accepted: isAccepted,
+                        theme: isDarkMode ? 'dark' : 'light'
+                    }
+                }
+            });
+
+            if (error) {
+                errorEl.textContent = error.message;
+                errorEl.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                return;
+            }
+
+            if (data.user) {
+                showToast('Kayıt başarılı! Lütfen e-postanızı onaylayın veya oturum açın.', 'success', 'Kayıt Tamamlandı');
+                switchView('login');
+            }
+        }
+
+        function renderAuthForm() {
+            const container = document.getElementById('authCardContainer');
+            if (!container) return;
+
+            if (currentView === 'login') {
+                container.innerHTML = `
+                    <div class="auth-header">
+                        <h2>Tekrar Hoş Geldiniz</h2>
+                        <p>Çalışma alanınıza erişmek için oturum açın.</p>
+                    </div>
+                    <div id="authError" class="error-message"></div>
+                    <form onsubmit="handleLogin(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="form-group">
+                            <label>E-posta Adresi</label>
+                            <input type="email" id="loginEmail" class="form-input" placeholder="ornek@mail.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Şifre</label>
+                            <div class="password-wrapper">
+                                <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required>
+                                <button type="button" class="toggle-password" onclick="togglePassword('loginPassword', this)">👁️</button>
+                            </div>
+                        </div>
+                        <button type="submit" id="loginBtn" class="btn btn-anime" style="width: 100%; padding: 0.75rem; font-size: 0.8rem; margin-top: 0.5rem;">Oturum Aç</button>
+                    </form>
+                    <div class="auth-switch">
+                        Hesabınız yok mu? <a href="#" onclick="switchView('register'); return false;">Hemen Kaydolun</a>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="auth-header">
+                        <h2>Hesap Oluşturun</h2>
+                        <p>TsuTabi ekosistemine katılmak için bilgilerinizi girin.</p>
+                    </div>
+                    <div id="authError" class="error-message"></div>
+                    <form onsubmit="handleRegister(event)" style="display: flex; flex-direction: column; gap: 0.85rem;">
+                        <div class="form-group">
+                            <label>Nickname</label>
+                            <input type="text" id="regNickname" class="form-input" placeholder="kullaniciadi" required>
+                        </div>
+                        <div class="form-group">
+                            <label>E-posta Adresi</label>
+                            <input type="email" id="regEmail" class="form-input" placeholder="ornek@mail.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Şifre</label>
+                            <div class="password-wrapper">
+                                <input type="password" id="regPassword" class="form-input" placeholder="••••••••" oninput="validatePasswordStrength(this.value)" required>
+                                <button type="button" class="toggle-password" onclick="togglePassword('regPassword', this)">👁️</button>
+                            </div>
+                            <div class="password-checklist">
+                                <div id="lengthCheck" class="checklist-item invalid">En az 8 karakter</div>
+                                <div id="uppercaseCheck" class="checklist-item invalid">En az 1 büyük harf</div>
+                                <div id="lowercaseCheck" class="checklist-item invalid">En az 1 küçük harf</div>
+                                <div id="numberCheck" class="checklist-item invalid">En az 1 sayı</div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Şifre Onayı</label>
+                            <div class="password-wrapper">
+                                <input type="password" id="regPasswordConfirm" class="form-input" placeholder="••••••••" oninput="checkPasswordMatch()" required>
+                                <button type="button" class="toggle-password" onclick="togglePassword('regPasswordConfirm', this)">👁️</button>
+                            </div>
+                            <div id="matchFeedback" class="match-feedback"></div>
+                        </div>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="regTerms" required>
+                            <span><a href="/terms" target="_blank">Hizmet Koşulları</a>'nı, <a href="/privacy" target="_blank">Gizlilik Politikası</a>'nı ve <a href="/kvkk" target="_blank">Aydınlatma Metni</a>'ni okudum ve kabul ediyorum.</span>
+                        </label>
+                        <button type="submit" id="regBtn" class="btn btn-anime" style="width: 100%; padding: 0.75rem; font-size: 0.8rem; margin-top: 0.25rem;">Kayıt Ol</button>
+                    </form>
+                    <div class="auth-switch">
+                        Zaten bir hesabınız var mı? <a href="#" onclick="switchView('login'); return false;">Oturum Açın</a>
+                    </div>
+                `;
+            }
+        }
+    </script>
+
+    <!-- Ortak app.js Entegrasyonu (Navbar, Footer, Tema ve Session Yönetimi İçin) -->
+    <script src="/app.js"></script>
+    <script>
+        // Sayfa tamamen yüklendiğinde auth mantığını tetikle
+        document.addEventListener("DOMContentLoaded", async () => {
+            await initAuthApp();
+        });
+    </script>
+</body>
+</html>

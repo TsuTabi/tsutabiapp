@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TsuTabi - Hesabım</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+    <script src="/cookie-banner.js"></script>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Ortak CSS Dosyası (Navbar, Footer, Tema Değişkenleri ve Genel Stiller) -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <style>
+        /* --- HESABIM SAYFASINA ÖZEL STİLLER --- */
+        .main-content-wrapper { 
+            flex: 1; 
+            width: 100%; 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            padding: 2.5rem 1rem 4rem 1rem; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 2rem; 
+        }
+        
+        .account-layout-container { 
+            display: flex; 
+            gap: 1.5rem; 
+            align-items: flex-start; 
+        }
+        @media (max-width: 768px) {
+            .account-layout-container { flex-direction: column; }
+        }
+
+        .account-sidebar-tabs { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 0.5rem; 
+            width: 240px; 
+            flex-shrink: 0; 
+            background: var(--card-bg); 
+            backdrop-filter: var(--backdrop-blur); 
+            padding: 1rem; 
+            border-radius: 1.25rem; 
+            border: 1px solid var(--border-color); 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03); 
+        }
+        @media (max-width: 768px) {
+            .account-sidebar-tabs { width: 100%; flex-direction: row; overflow-x: auto; padding: 0.75rem; }
+        }
+        
+        .sidebar-tab-btn { 
+            background: transparent; 
+            border: none; 
+            font-size: 0.85rem; 
+            font-weight: 700; 
+            color: var(--text-muted); 
+            cursor: pointer; 
+            padding: 0.75rem 1rem; 
+            border-radius: 0.75rem; 
+            text-align: left; 
+            transition: all 0.2s; 
+            white-space: nowrap; 
+            display: flex; 
+            align-items: center; 
+            gap: 0.5rem; 
+            width: 100%; 
+            font-family: inherit;
+        }
+        .sidebar-tab-btn:hover { background: var(--btn-hover); color: var(--text-dark); }
+        .sidebar-tab-btn.active { background: linear-gradient(135deg, var(--primary-anime), var(--primary-indigo)); color: #fff; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2); }
+
+        .account-content-area { flex: 1; width: 100%; min-width: 0; }
+        .tab-pane { display: none; flex-direction: column; gap: 1.5rem; }
+        .tab-pane.active { display: flex; }
+
+        .account-card { 
+            background: var(--card-bg); 
+            backdrop-filter: var(--backdrop-blur); 
+            border-radius: 1.5rem; 
+            border: 1px solid var(--border-color); 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+            padding: 2rem; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 1.5rem; 
+        }
+        @media (max-width: 768px) {
+            .account-card { padding: 1.25rem; }
+        }
+        
+        .account-header-info { display: flex; flex-direction: column; gap: 0.4rem; }
+        .account-nickname { font-size: 1.8rem; font-weight: 800; color: var(--text-dark); }
+        .account-email-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--text-main); }
+        .account-date { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
+
+        .password-toggle-header { 
+            font-size: 0.9rem; 
+            font-weight: 700; 
+            color: var(--primary-indigo); 
+            cursor: pointer; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 0.4rem; 
+            border-top: 1px solid var(--border-color); 
+            padding-top: 1.25rem; 
+            user-select: none; 
+            width: fit-content; 
+        }
+        .password-toggle-header:hover { color: var(--primary-anime); }
+        
+        .password-form { display: none; flex-direction: column; gap: 1rem; background: var(--btn-bg); padding: 1.25rem; border-radius: 1rem; border: 1px solid var(--border-color); }
+        .password-form.active { display: flex; }
+        
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        .form-group label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+        
+        .form-input { 
+            background: var(--input-bg); 
+            border: 1px solid var(--border-color); 
+            border-radius: 0.625rem; 
+            padding: 0.625rem 0.875rem; 
+            font-size: 0.85rem; 
+            color: var(--text-main); 
+            outline: none; 
+            width: 100%; 
+            font-family: inherit;
+        }
+        .form-input:focus { border-color: var(--primary-anime); }
+
+        .items-grid { display: flex; flex-direction: column; gap: 1rem; }
+        
+        .notification-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 1rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.6rem; position: relative; }
+        .notification-card.unread { background: var(--unread-bg); border-color: var(--unread-border); }
+        .notif-top { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
+        .notif-badge { background: var(--primary-indigo); color: #fff; padding: 0.15rem 0.5rem; border-radius: 0.3rem; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; }
+        .notification-card.unread .notif-badge { background: var(--primary-anime); }
+        .notif-message { font-size: 0.85rem; color: var(--text-main); line-height: 1.4; }
+
+        .notif-feedback-box { background: var(--feedback-box-bg); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.3rem; margin-top: 0.25rem; }
+        .notif-feedback-title { font-size: 0.8rem; font-weight: 700; color: var(--primary-indigo); }
+        .notif-feedback-content { font-size: 0.75rem; color: var(--text-muted); line-height: 1.35; }
+
+        .comment-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 1rem; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; position: relative; }
+        .comment-card-top { display: flex; justify-content: space-between; align-items: center; }
+        .comment-blog-name { font-size: 0.8rem; font-weight: 800; color: var(--primary-indigo); }
+        .comment-date-tag { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; }
+        .comment-content-text { font-size: 0.85rem; color: var(--text-main); line-height: 1.4; }
+
+        .load-more-container { display: flex; justify-content: center; margin-top: 0.5rem; }
+
+        .danger-zone-card { 
+            background: rgba(239, 68, 68, 0.05); 
+            border: 2px solid rgba(239, 68, 68, 0.3); 
+            border-radius: 1.5rem; 
+            padding: 2rem; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 1.25rem; 
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.05);
+        }
+        .danger-zone-title { font-size: 1.15rem; font-weight: 800; color: #ef4444; }
+        .danger-zone-desc { font-size: 0.85rem; color: var(--text-main); line-height: 1.5; }
+        .danger-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem; }
+
+        .menu-dropdown-container { position: relative; }
+        .three-dots-btn { background: none; border: none; font-size: 1rem; cursor: pointer; color: var(--text-muted); padding: 2px 6px; border-radius: 4px; }
+        .three-dots-btn:hover { background: var(--btn-hover); color: var(--text-dark); }
+        .comment-menu-content { display: none; position: absolute; right: 0; top: 100%; background: var(--dropdown-bg); border: 1px solid var(--border-color); border-radius: 0.5rem; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 20; min-width: 150px; overflow: hidden; }
+        .comment-menu-content.active { display: block; }
+        .comment-menu-content button { background: none; border: none; width: 100%; text-align: left; padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: var(--text-main); cursor: pointer; font-family: inherit; }
+        .comment-menu-content button:hover { background: var(--dropdown-hover); color: var(--primary-anime); }
+
+        .confirm-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1100; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .confirm-modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .confirm-modal-box { background: var(--card-bg); border: 1px solid var(--border-color); padding: 1.75rem; border-radius: 1rem; max-width: 340px; width: 100%; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 1rem; }
+        .confirm-modal-box h3 { font-size: 1rem; font-weight: 800; color: var(--text-dark); }
+        .confirm-modal-box p { font-size: 0.8rem; color: var(--text-muted); }
+        .confirm-modal-actions { display: flex; gap: 0.5rem; justify-content: center; }
+
+        .spinner-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1rem;
+            gap: 1rem;
+            width: 100%;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary-anime);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .spinner-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- MODERN TOAST BİLDİRİM STİLLERİ --- */
+        #toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            pointer-events: none;
+        }
+        .tsu-toast {
+            pointer-events: auto;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            backdrop-filter: var(--backdrop-blur);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 0.875rem 1.25rem;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 280px;
+            max-width: 380px;
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            opacity: 0;
+        }
+        .tsu-toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        .tsu-toast-icon {
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .tsu-toast-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            flex: 1;
+        }
+        .tsu-toast-title {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+        .tsu-toast-msg {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.35;
+        }
+        .tsu-toast.success { border-left: 4px solid var(--primary-anime); }
+        .tsu-toast.error { border-left: 4px solid #ef4444; }
+    </style>
+</head>
+<body>
+
+    <!-- Dinamik Toast Konteyneri -->
+    <div id="toast-container"></div>
+
+    <div id="navbar-placeholder"></div>
+
+    <div class="main-content-wrapper">
+        
+        <div class="account-layout-container">
+            <div class="account-sidebar-tabs">
+                <button class="sidebar-tab-btn active" onclick="switchAccountTab('general', this)">⚙️ Genel</button>
+                <button class="sidebar-tab-btn" onclick="switchAccountTab('notifications', this)">📨 Bildirimler</button>
+                <button class="sidebar-tab-btn" onclick="switchAccountTab('comments', this)">💬 Yorumlarım</button>
+                <button class="sidebar-tab-btn" onclick="switchAccountTab('privacy', this)">🔒 Veri ve Gizlilik</button>
+            </div>
+
+            <div class="account-content-area">
+
+                <div id="pane-general" class="tab-pane active">
+                    <div class="account-card">
+                        <div class="account-header-info">
+                            <div class="account-nickname" id="profileNickname">Yükleniyor...</div>
+                            
+                            <div class="account-email-row">
+                                <span id="currentEmailText">Yükleniyor...</span>
+                            </div>
+
+                            <div class="account-date" id="profileCreatedDate">Üyelik Başlangıcı: Yükleniyor...</div>
+                        </div>
+
+                        <div class="password-toggle-header" onclick="togglePasswordForm()">
+                            <span>🔑 Şifre Değiştir</span>
+                            <span id="passwordToggleArrow" style="font-size: 0.75rem;">▼</span>
+                        </div>
+
+                        <div class="password-form" id="passwordFormBox">
+                            <div class="form-group">
+                                <label for="newPassword">Yeni Şifre</label>
+                                <input type="password" id="newPassword" class="form-input" placeholder="En az 8 karakter. Büyük/küçük harf ve sayı içermelidir">
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmNewPassword">Yeni Şifre (Tekrar)</label>
+                                <input type="password" id="confirmNewPassword" class="form-input" placeholder="Şifrenizi tekrar girin">
+                            </div>
+                            <button type="button" class="btn btn-anime" onclick="handleUpdatePassword()" style="align-self: flex-start; margin-top: 0.25rem;">Şifreyi Güncelle</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pane-notifications" class="tab-pane">
+                    <div class="items-grid" id="notificationsContainer">
+                        <div class="spinner-container">
+                            <div class="spinner"></div>
+                            <span class="spinner-text">Bildirimler yükleniyor...</span>
+                        </div>
+                    </div>
+                    <div class="load-more-container" id="notifLoadMoreBox" style="display: none;">
+                        <button class="btn btn-outline" onclick="loadMoreNotifications()">Daha Eski Bildirimleri Yükle</button>
+                    </div>
+                </div>
+
+                <div id="pane-comments" class="tab-pane">
+                    <div class="items-grid" id="commentsGridContainer">
+                        <div class="spinner-container">
+                            <div class="spinner"></div>
+                            <span class="spinner-text">Yorumların yükleniyor...</span>
+                        </div>
+                    </div>
+                    <div class="load-more-container" id="commentLoadMoreBox" style="display: none;">
+                        <button class="btn btn-outline" onclick="loadMoreComments()">Daha Eski Yorumları Yükle</button>
+                    </div>
+                </div>
+
+                <div id="pane-privacy" class="tab-pane">
+                    <div class="account-card" style="padding: 1.5rem; gap: 1rem;">
+                        <div style="font-size: 1rem; font-weight: 800; color: var(--text-dark);">📊 Veri ve Etkileşim Özetiniz</div>
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; background: var(--btn-bg); border-radius: 0.625rem; border: 1px solid var(--border-color);">
+                                <span style="font-size: 0.8rem; font-weight: 600;">Kaydedilen Kelimeler</span>
+                                <span id="statSavedWords" style="font-size: 0.85rem; font-weight: 800; color: var(--primary-indigo);">Yükleniyor...</span>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; background: var(--btn-bg); border-radius: 0.625rem; border: 1px solid var(--border-color);">
+                                <span style="font-size: 0.8rem; font-weight: 600;">Toplam Yorum Sayısı</span>
+                                <span id="statTotalComments" style="font-size: 0.85rem; font-weight: 800; color: var(--primary-indigo);">Yükleniyor...</span>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; background: var(--btn-bg); border-radius: 0.625rem; border: 1px solid var(--border-color);">
+                                <span style="font-size: 0.8rem; font-weight: 600;">Günlük Kayıtları</span>
+                                <span id="statDiaryCount" style="font-size: 0.85rem; font-weight: 800; color: var(--primary-indigo);">Yükleniyor...</span>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="danger-zone-card">
+                        <div class="danger-zone-title">⚠️ Tehlikeli Bölge</div>
+                        <div class="danger-zone-desc">
+                            Hesabınızı kalıcı olarak silebilir veya yaptığınız yorumları anonimleştirerek hesabınızla olan ilişkinizi kesebilirsiniz. Bu işlem geri alınamaz.
+                        </div>
+                        <div class="danger-actions">
+                            <button class="btn btn-outline" style="border-color: #ef4444; color: #ef4444;" onclick="openAccountDeleteModal('unlink')">İlişki Keserek Hesabı Sil</button>
+                            <button class="btn btn-danger" style="background-color: #ef4444; border-color: #ef4444; color: #fff;" onclick="openAccountDeleteModal('complete')">Tamamen Hesabı Sil</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div id="confirmModal" class="confirm-modal-overlay">
+        <div class="confirm-modal-box">
+            <h3>Emin misiniz?</h3>
+            <p id="confirmModalText">Bu işlemi gerçekleştirmek istediğinize emin misiniz?</p>
+            <div class="confirm-modal-actions">
+                <button class="btn" style="background: var(--btn-bg);" onclick="closeConfirmModal()">İptal</button>
+                <button class="btn btn-anime" onclick="executeConfirmAction()">Evet, Onayla</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script>
+        let activeCommentId = null;
+        let activeCommentElement = null;
+        let currentActionType = null;
+        let accountDeleteType = null;
+
+        let notifLimit = 10;
+        let notifOffset = 0;
+        let notifLoaded = false;
+        
+        let commentLimit = 10;
+        let commentOffset = 0;
+        let commentLoaded = false;
+        
+        let globalUserId = null;
+
+        /* --- TOAST BİLDİRİM TETİKLEYİCİSİ --- */
+        function showToast(message, type = 'success', title = '') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `tsu-toast ${type}`;
+            
+            const icon = type === 'success' ? '🌸' : '⚠️';
+            const defaultTitle = type === 'success' ? 'Harika!' : 'Dikkat!';
+            
+            toast.innerHTML = `
+                <div class="tsu-toast-icon">${icon}</div>
+                <div class="tsu-toast-content">
+                    <span class="tsu-toast-title">${title || defaultTitle}</span>
+                    <span class="tsu-toast-msg">${message}</span>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            // Animasyonun tetiklenmesi için kısa bir gecikme
+            setTimeout(() => toast.classList.add('show'), 10);
+
+            // 3.5 saniye sonra ekrandan kaldır
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function switchAccountTab(tabName, btnElement) {
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+            document.querySelectorAll('.sidebar-tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(`pane-${tabName}`).classList.add('active');
+            btnElement.classList.add('active');
+
+            if (tabName === 'notifications' && !notifLoaded && globalUserId) {
+                notifLoaded = true;
+                loadUserNotifications(globalUserId, true);
+            } else if (tabName === 'comments' && !commentLoaded && globalUserId) {
+                commentLoaded = true;
+                loadUserComments(globalUserId, true);
+            } else if (tabName === 'privacy' && globalUserId) {
+                loadPrivacyTabStats(globalUserId);
+            }
+        }
+
+        async function initAccountPage() {
+            const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+            
+            if (sessionError || !session) {
+                window.location.href = '/register';
+                return;
+            }
+
+            currentUser = session.user;
+            globalUserId = currentUser.id;
+
+            await fetchProfileAndData(globalUserId);
+            await loadPrivacyTabStats(globalUserId);
+        }
+
+        async function loadPrivacyTabStats(userId) {
+            const { count: savedWordsCount, error: swError } = await supabaseClient
+                .from('saved_words')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userId);
+
+            document.getElementById('statSavedWords').innerText = swError ? '0' : (savedWordsCount || 0);
+
+            const { count: commentsCount, error: cError } = await supabaseClient
+                .from('comments')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userId);
+
+            document.getElementById('statTotalComments').innerText = cError ? '0' : (commentsCount || 0);
+
+            const { count: diaryCount, error: dError } = await supabaseClient
+                .from('diary')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userId);
+
+            const diaryElem = document.getElementById('statDiaryCount');
+            if (dError || !diaryCount || diaryCount === 0) {
+                diaryElem.innerText = 'Henüz verin yok';
+            } else {
+                diaryElem.innerText = diaryCount;
+            }
+        }
+
+        async function fetchProfileAndData(userId) {
+            const { data: profileData, error: profileError } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('user_id', userId)
+                .single();
+
+            if (profileError) {
+                console.error('Profil bilgileri alınamadı:', profileError.message);
+            } else if (profileData) {
+                userProfile = profileData;
+                localStorage.setItem('userProfile', JSON.stringify(profileData));
+                isDarkMode = profileData.theme === 'dark';
+                document.body.classList.toggle('dark-mode', isDarkMode);
+
+                document.getElementById('profileNickname').innerText = profileData.nickname || 'İsimsiz';
+                document.getElementById('currentEmailText').innerText = profileData.email || currentUser.email;
+                
+                if (profileData.created_at) {
+                    const formattedDate = new Date(profileData.created_at).toLocaleDateString('tr-TR');
+                    document.getElementById('profileCreatedDate').innerText = `Üyelik Başlangıcı: ${formattedDate}`;
+                }
+                if (typeof renderUI === 'function') renderUI();
+            }
+        }
+
+        function togglePasswordForm() {
+            const formBox = document.getElementById('passwordFormBox');
+            const arrow = document.getElementById('passwordToggleArrow');
+            formBox.classList.toggle('active');
+            arrow.style.transform = formBox.classList.contains('active') ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        async function handleUpdatePassword() {
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+            if (!newPassword || !confirmNewPassword) {
+                showToast('Lütfen tüm şifre alanlarını doldurun.', 'error', 'Eksik Alan');
+                return;
+            }
+
+            if (newPassword.length < 8) {
+                showToast('Yeni şifreniz en az 8 karakter olmalıdır.', 'error', 'Geçersiz Şifre');
+                return;
+            }
+
+            if (newPassword !== confirmNewPassword) {
+                showToast('Girdiğiniz şifreler birbiriyle eşleşmiyor.', 'error', 'Hata');
+                return;
+            }
+
+            const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+            if (error) {
+                showToast('Şifre güncellenemedi: ' + error.message, 'error', 'Hata');
+            } else {
+                showToast('Şifreniz başarıyla değiştirildi!', 'success', 'Başarılı');
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmNewPassword').value = '';
+                togglePasswordForm();
+            }
+        }
+
+        async function loadUserNotifications(userId, reset = false) {
+            const container = document.getElementById('notificationsContainer');
+            const loadMoreBtnBox = document.getElementById('notifLoadMoreBox');
+
+            if (reset) {
+                notifOffset = 0;
+                container.innerHTML = `
+                    <div class="spinner-container">
+                        <div class="spinner"></div>
+                        <span class="spinner-text">Bildirimler yükleniyor...</span>
+                    </div>
+                `;
+            }
+
+            const { data: notifications, error } = await supabaseClient
+                .from('notifications')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .range(notifOffset, notifOffset + notifLimit - 1);
+
+            if (error) {
+                container.innerHTML = '<p style="font-size: 0.85rem; color: var(--text-muted);">Bildirimler yüklenirken hata oluştu.</p>';
+                return;
+            }
+
+            if (notifOffset === 0) {
+                container.innerHTML = '';
+            }
+
+            if (!notifications || notifications.length === 0) {
+                if (notifOffset === 0) {
+                    container.innerHTML = '<p style="font-size: 0.85rem; color: var(--text-muted);">Hiç bildiriminiz bulunmuyor.</p>';
+                }
+                loadMoreBtnBox.style.display = 'none';
+                return;
+            }
+
+            for (const notif of notifications) {
+                const formattedDate = new Date(notif.created_at).toLocaleString('tr-TR', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short'
+                });
+
+                let feedbackHtml = '';
+                if (notif.feedback_id) {
+                    const { data: feedbackData, error: feedbackError } = await supabaseClient
+                        .from('feedbacks')
+                        .select('title, content')
+                        .eq('feedback_id', notif.feedback_id)
+                        .single();
+
+                    if (!feedbackError && feedbackData) {
+                        feedbackHtml = `
+                            <div class="notif-feedback-box">
+                                <div class="notif-feedback-title">${escapeHtml(feedbackData.title || 'Geri Bildirim')}</div>
+                                <div class="notif-feedback-content">${escapeHtml(feedbackData.content || '')}</div>
+                            </div>
+                        `;
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = `notification-card ${notif.is_read ? '' : 'unread'}`;
+                card.id = `notif-${notif.notification_id || notif.id}`;
+                
+                card.innerHTML = `
+                    <div class="notif-top">
+                        <span class="notif-badge">${notif.is_read ? 'Okundu' : 'Yeni'}</span>
+                        <span>${formattedDate}</span>
+                    </div>
+                    <p class="notif-message">${escapeHtml(notif.message)}</p>
+                    ${feedbackHtml}
+                    ${!notif.is_read ? `<button class="btn btn-outline" style="width: fit-content; font-size: 0.7rem; padding: 0.25rem 0.5rem; margin-top: 0.25rem;" onclick="markNotificationAsRead('${notif.notification_id || notif.id}')">Okundu İşaretle</button>` : ''}
+                `;
+                container.appendChild(card);
+            }
+
+            if (notifications.length === notifLimit) {
+                loadMoreBtnBox.style.display = 'flex';
+            } else {
+                loadMoreBtnBox.style.display = 'none';
+            }
+        }
+
+        function loadMoreNotifications() {
+            notifOffset += notifLimit;
+            loadUserNotifications(globalUserId, false);
+        }
+
+        async function markNotificationAsRead(notifId) {
+            const { error } = await supabaseClient
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('notification_id', notifId);
+
+            if (error) {
+                const { error: err2 } = await supabaseClient
+                    .from('notifications')
+                    .update({ is_read: true })
+                    .eq('id', notifId);
+                
+                if(err2) {
+                    showToast('Bildirim güncellenemedi.', 'error', 'Hata');
+                    return;
+                }
+            }
+
+            const card = document.getElementById(`notif-${notifId}`);
+            if (card) {
+                card.classList.remove('unread');
+                const badge = card.querySelector('.notif-badge');
+                if (badge) badge.innerText = 'Okundu';
+                const btn = card.querySelector('button');
+                if (btn) btn.remove();
+            }
+            showToast('Bildirim okundu olarak işaretlendi.', 'success', 'Güncellendi');
+        }
+
+        async function loadUserComments(userId, reset = false) {
+            const commentsContainer = document.getElementById('commentsGridContainer');
+            const loadMoreBtnBox = document.getElementById('commentLoadMoreBox');
+
+            if (reset) {
+                commentOffset = 0;
+                commentsContainer.innerHTML = `
+                    <div class="spinner-container">
+                        <div class="spinner"></div>
+                        <span class="spinner-text">Yorumlar yükleniyor...</span>
+                    </div>
+                `;
+            }
+            
+            const { data: comments, error: commentError } = await supabaseClient
+                .from('comments')
+                .select('comment_id, content, created_at, blog_id')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .range(commentOffset, commentOffset + commentLimit - 1);
+
+            if (commentError) {
+                commentsContainer.innerHTML = '<p style="font-size: 0.85rem; color: var(--text-muted);">Yorumlar yüklenirken bir hata oluştu.</p>';
+                return;
+            }
+
+            if (commentOffset === 0) {
+                commentsContainer.innerHTML = '';
+            }
+
+            if (!comments || comments.length === 0) {
+                if (commentOffset === 0) {
+                    commentsContainer.innerHTML = '<p style="font-size: 0.85rem; color: var(--text-muted);">Henüz hiç yorum yapmamışsınız.</p>';
+                }
+                loadMoreBtnBox.style.display = 'none';
+                return;
+            }
+
+            for (const comment of comments) {
+                let blogTitle = 'Blog Yazısı';
+                
+                if (comment.blog_id) {
+                    const { data: blogData, error: blogError } = await supabaseClient
+                        .from('blogs')
+                        .select('title')
+                        .eq('blog_id', comment.blog_id)
+                        .single();
+
+                    if (!blogError && blogData) {
+                        blogTitle = blogData.title;
+                    }
+                }
+
+                const formattedCommentDate = new Date(comment.created_at).toLocaleString('tr-TR', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short'
+                });
+
+                const card = document.createElement('div');
+                card.className = 'comment-card';
+                card.innerHTML = `
+                    <div class="comment-card-top">
+                        <div>
+                            <span class="comment-blog-name">${escapeHtml(blogTitle)}</span>
+                            <div class="comment-date-tag">${formattedCommentDate}</div>
+                        </div>
+                        <div class="menu-dropdown-container">
+                            <button class="three-dots-btn" onclick="toggleCommentMenu(this)">⋮</button>
+                            <div class="comment-menu-content">
+                                <button onclick="openConfirmModal('delete', '${comment.comment_id}', this, 'Bu yorumu kalıcı olarak silmek istediğinize emin misiniz?')">Yorumu Sil</button>
+                                <button onclick="openConfirmModal('unlink', '${comment.comment_id}', this, 'Bu yorum ile hesabınız arasındaki ilişkiyi kesmek istediğinize emin misiniz?')">İlişkiyi Kes</button>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="comment-content-text">${escapeHtml(comment.content)}</p>
+                `;
+                commentsContainer.appendChild(card);
+            }
+
+            if (comments.length === commentLimit) {
+                loadMoreBtnBox.style.display = 'flex';
+            } else {
+                loadMoreBtnBox.style.display = 'none';
+            }
+        }
+
+        function loadMoreComments() {
+            commentOffset += commentLimit;
+            loadUserComments(globalUserId, false);
+        }
+
+        function toggleCommentMenu(btn) {
+            document.querySelectorAll('.comment-menu-content').forEach(menu => {
+                if(menu !== btn.nextElementSibling) menu.classList.remove('active');
+            });
+            btn.nextElementSibling.classList.toggle('active');
+        }
+
+        window.addEventListener('click', function(e) {
+            if (!e.target.matches('.three-dots-btn')) {
+                document.querySelectorAll('.comment-menu-content').forEach(menu => {
+                    menu.classList.remove('active');
+                });
+            }
+        });
+
+        function openConfirmModal(actionType, commentId, btnElement, message) {
+            currentActionType = actionType;
+            accountDeleteType = null;
+            activeCommentId = commentId;
+            activeCommentElement = btnElement.closest('.comment-card');
+            document.getElementById('confirmModalText').innerText = message;
+            document.getElementById('confirmModal').classList.add('active');
+        }
+
+        function openAccountDeleteModal(type) {
+            currentActionType = 'accountDelete';
+            accountDeleteType = type;
+            activeCommentId = null;
+            activeCommentElement = null;
+            
+            const msg = type === 'unlink' 
+                ? 'Hesabınız silinecek ancak yorumlarınız anonimleştirilerek sistemde tutulacaktır. Emin misiniz?' 
+                : 'Tüm verileriniz ve hesabınız kalıcı olarak tamamen silinecektir. Bu işlem geri alınamaz!';
+            
+            document.getElementById('confirmModalText').innerText = msg;
+            document.getElementById('confirmModal').classList.add('active');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+            activeCommentId = null;
+            activeCommentElement = null;
+            currentActionType = null;
+            accountDeleteType = null;
+        }
+
+        async function executeConfirmAction() {
+            if (currentActionType === 'delete') {
+                const { error } = await supabaseClient
+                    .from('comments')
+                    .delete()
+                    .eq('comment_id', activeCommentId);
+
+                if (error) {
+                    showToast('Yorum silinirken hata oluştu.', 'error', 'Hata');
+                } else {
+                    if (activeCommentElement) activeCommentElement.remove();
+                    showToast('Yorum başarıyla silindi.', 'success', 'Silindi');
+                    loadPrivacyTabStats(globalUserId);
+                }
+            } else if (currentActionType === 'unlink') {
+                const { error } = await supabaseClient.rpc('unlink_comment', {
+                    comment_id_input: activeCommentId
+                });
+
+                if (error) {
+                    showToast('İlişki kesilirken hata oluştu.', 'error', 'Hata');
+                } else {
+                    if (activeCommentElement) activeCommentElement.remove();
+                    showToast('Yorum ile hesabın ilişkisi kesildi.', 'success', 'İşlem Başarılı');
+                    loadPrivacyTabStats(globalUserId);
+                }
+            } else if (currentActionType === 'accountDelete') {
+                const { data: sessionData } = await supabaseClient.auth.getSession();
+                const accessToken = sessionData?.session?.access_token;
+
+                if (!accessToken) {
+                    showToast('Oturum süresi dolmuş.', 'error', 'Oturum Hatası');
+                    return;
+                }
+
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`,
+                        'apikey': SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({ deleteType: accountDeleteType })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    showToast('Hesap silinemedi: ' + (result.error || 'Bilinmeyen hata'), 'error', 'Hata');
+                } else {
+                    showToast('Hesabınız başarıyla silindi.', 'success', 'Güle Güle');
+                    await supabaseClient.auth.signOut();
+                    localStorage.removeItem('userProfile');
+                    setTimeout(() => { window.location.href = '/register'; }, 1500);
+                    return;
+                }
+            }
+
+            closeConfirmModal();
+            
+            const commentsContainer = document.getElementById('commentsGridContainer');
+            if (commentsContainer && commentsContainer.children.length === 0 && currentActionType !== 'accountDelete') {
+                commentsContainer.innerHTML = '<p style="font-size: 0.85rem; color: var(--text-muted);">Henüz hiç yorum yapmamışsınız.</p>';
+            }
+        }
+
+        function escapeHtml(str) {
+            return str ? str.replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t])) : '';
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await loadComponents(); 
+            await initApp();        
+            await initAccountPage(); 
+        });
+    </script>
+    <script src="/app.js"></script>
+</body>
+</html>

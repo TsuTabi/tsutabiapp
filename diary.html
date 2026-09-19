@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japonca Günlük - Yerel Kana Çevirici</title>
+    <!-- Tailwind CSS (Kararlı UMD Sürüm) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Supabase JS Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/cookie-banner.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #fdf4ff 0%, #e0e7ff 50%, #fae8ff 100%);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --backdrop-blur: blur(16px);
+            --text-main: #1e293b;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border-color: rgba(226, 232, 240, 0.8);
+            --primary-anime: #ec4899;
+            --primary-indigo: #6366f1;
+            --dropdown-bg: rgba(255, 255, 255, 0.95);
+            --dropdown-hover: rgba(241, 245, 249, 0.8);
+            --nickname-bg: rgba(248, 250, 252, 0.9);
+            --btn-bg: #f1f5f9;
+            --btn-hover: #e2e8f0;
+        }
+
+        body.dark-mode {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --card-bg: rgba(30, 41, 59, 0.9);
+            --text-main: #cbd5e1;
+            --text-dark: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: rgba(51, 65, 85, 0.8);
+            --dropdown-bg: rgba(30, 41, 59, 0.95);
+            --dropdown-hover: rgba(51, 65, 85, 0.8);
+            --nickname-bg: rgba(15, 23, 42, 0.9);
+            --btn-bg: #1e293b;
+            --btn-hover: #334155;
+        }
+
+        * { font-family: 'Plus Jakarta Sans', sans-serif; transition: background 0.3s, color 0.3s, border-color 0.3s; }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+        }
+
+        .accordion-content {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.3s ease-out, padding 0.3s ease-out;
+            padding: 0 1rem;
+        }
+        .accordion-content.open {
+            grid-template-rows: 1fr;
+            padding: 1rem;
+        }
+        .accordion-inner {
+            overflow: hidden;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col items-center pb-12">
+
+    <!-- Main Container -->
+    <main class="w-full max-w-2xl flex flex-col gap-5 relative mt-2 px-4 flex-1">
+
+        <!-- OTURUM YOKSA GÖSTERİLECEK BİLGİLENDİRME ALANI -->
+        <div id="guestBanner" class="hidden bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 text-center">
+            <div class="inline-block p-3 bg-indigo-50 dark:bg-slate-800 rounded-2xl text-3xl mb-1">🚀</div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">Üreterek Öğrenmenin Gücünü Keşfedin!</h2>
+            <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-lg mx-auto">
+                Pasif ezberlemeyi unutun! <strong>Q Paneli</strong> ve günlük tutma modülü sayesinde kendi cümlelerinizi kurarken anında akıllı sözlük desteği alır, öğrendiğiniz kelimeleri kalıcı hale getirirsiniz.
+            </p>
+            <div class="pt-2 flex flex-col sm:flex-row justify-center gap-3">
+                <a href="/" class="px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white font-bold rounded-xl text-xs transition shadow-md">Kayıt Ol / Oturum Aç</a>
+            </div>
+        </div>
+
+        <!-- 1. GÜNLÜK YAZMA ALANI -->
+        <div id="writeSection" class="bg-slate-50 sm:bg-white dark:bg-slate-900 p-0 sm:p-6 rounded-none sm:rounded-2xl border-0 sm:border border-slate-200 dark:border-slate-800 shadow-none sm:shadow-sm space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <h2 class="font-bold text-sm text-slate-800 dark:text-slate-200">Gününü anlat!!</h2>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleQuickDict()" class="px-3 py-1.5 bg-indigo-50 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-300 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                        <span>🔍</span>
+                        <span>Hızlı Sözlük (Q)</span>
+                    </button>
+                    <button onclick="toggleViewMode('list')" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                        📖 <span>Oku</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tarih, Ruh Hali ve Hava Durumu -->
+            <div class="grid grid-cols-3 gap-1.5 sm:gap-3">
+                <div class="bg-white dark:bg-slate-800 sm:bg-transparent p-2 sm:p-0 rounded-xl border border-slate-200 dark:border-slate-700 sm:border-0 shadow-xs sm:shadow-none">
+                    <input type="date" id="journalDateInput" class="w-full px-1.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-[11px] sm:text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 sm:bg-transparent p-2 sm:p-0 rounded-xl border border-slate-200 dark:border-slate-700 sm:border-0 shadow-xs sm:shadow-none">
+                    <select id="journalMood" class="w-full px-1.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-[11px] sm:text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 truncate">
+                        <option value="😊 Mutlu">😊 Mutlu (嬉しい)</option>
+                        <option value="😌 Sakin">😌 Sakin (穏やか)</option>
+                        <option value="🤔 Düşünceli">🤔 Düşünceli (考え中)</option>
+                        <option value="😩 Yorgun">😩 Yorgun (疲れた)</option>
+                        <option value="🔥 Motive">🔥 Motive (やる気)</option>
+                        <option value="😢 Üzgün">😢 Üzgün (悲しい)</option>
+                    </select>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 sm:bg-transparent p-2 sm:p-0 rounded-xl border border-slate-200 dark:border-slate-700 sm:border-0 shadow-xs sm:shadow-none">
+                    <select id="journalWeather" class="w-full px-1.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-[11px] sm:text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 truncate">
+                        <option value="☀️ Güneşli">☀️ Güneşli (晴れ)</option>
+                        <option value="☁️ Bulutlu">☁️ Bulutlu (曇り)</option>
+                        <option value="🌧️ Yağmurlu">🌧️ Yağmurlu (雨)</option>
+                        <option value="❄️ Karlı">❄️ Karlı (雪)</option>
+                        <option value="💨 Rüzgarlı">💨 Rüzgarlı (風)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Etiket Alanı -->
+            <div class="bg-white dark:bg-slate-800 sm:bg-transparent p-2 sm:p-0 rounded-xl border border-slate-200 dark:border-slate-700 sm:border-0 shadow-xs sm:shadow-none">
+                <input type="text" id="journalTags" placeholder="Etiketler (örn: gezi, okul, calisma - virgülle ayırın)" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 sm:bg-transparent p-4 sm:p-0 rounded-2xl border border-slate-200 dark:border-slate-700 sm:border-0 shadow-sm sm:shadow-none">
+                <textarea id="journalContent" rows="8" placeholder="Bugün hava nasıldı?" class="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 leading-relaxed resize-none"></textarea>
+            </div>
+
+            <button onclick="saveJournal()" class="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl text-sm transition shadow-sm cursor-pointer">
+                💾 Günlüğü Kaydet
+            </button>
+        </div>
+
+        <!-- 2. GÜNLÜKLERİ OKUMA / LİSTELEME ALANI -->
+        <div id="readSection" class="hidden bg-slate-50 sm:bg-white dark:bg-slate-900 p-0 sm:p-6 rounded-none sm:rounded-2xl border-0 sm:border border-slate-200 dark:border-slate-800 shadow-none sm:shadow-sm space-y-4">
+            
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <h2 class="font-bold text-sm text-slate-800 dark:text-slate-200">Arşiv</h2>
+                    <button onclick="toggleSearchBox()" id="searchToggleBtn" class="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-xs transition cursor-pointer flex items-center gap-1">
+                        <span>🔍</span> <span class="text-[10px] hidden sm:inline">Ara</span>
+                    </button>
+                </div>
+                <button onclick="toggleViewMode('write')" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                    ✍️ Yeni Günlük Yaz
+                </button>
+            </div>
+
+            <!-- FİLTRE PANELİ -->
+            <div id="filterSearchContainer" class="hidden space-y-3 bg-white sm:bg-slate-50 dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 transition-all">
+                <div class="space-y-1.5">
+                    <div class="relative flex items-center gap-2">
+                        <div class="relative flex-1">
+                            <input type="text" id="journalSearchInput" oninput="renderJournalList()" placeholder="Günlük içeriklerinde ara..." class="w-full pl-8 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium">
+                            <span class="absolute left-2.5 top-2.5 text-slate-400 text-xs">🔍</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ruh Hali Filtresi -->
+                <div class="space-y-1">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ruh Hali</div>
+                    <div id="moodFilters" class="flex flex-row items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                        <button onclick="setMoodFilter('')" class="mood-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-600 text-white transition cursor-pointer" data-mood="">Tümü</button>
+                        <button onclick="setMoodFilter('Mutlu')" class="mood-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer" data-mood="Mutlu">😊 Mutlu</button>
+                        <button onclick="setMoodFilter('Sakin')" class="mood-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer" data-mood="Sakin">😌 Sakin</button>
+                        <button onclick="setMoodFilter('Düşünceli')" class="mood-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer" data-mood="Düşünceli">🤔 Düşünceli</button>
+                        <button onclick="setMoodFilter('Yorgun')" class="mood-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer" data-mood="Yorgun">😩 Yorgun</button>
+                        <button onclick="setMoodFilter('Motive')" class="mood-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer" data-mood="Motive">🔥 Motive</button>
+                        <button onclick="setMoodFilter('Üzgün')" class="mood-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer" data-mood="Üzgün">😢 Üzgün</button>
+                    </div>
+                </div>
+
+                <!-- Hava Durumu Filtresi -->
+                <div class="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-700">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hava Durumu</div>
+                    <div id="weatherFilters" class="flex flex-row items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                        <button onclick="setWeatherFilter('')" class="weather-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-sky-600 text-white transition cursor-pointer" data-weather="">Tümü</button>
+                        <button onclick="setWeatherFilter('Güneşli')" class="weather-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer" data-weather="Güneşli">☀️ Güneşli</button>
+                        <button onclick="setWeatherFilter('Bulutlu')" class="weather-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer" data-weather="Bulutlu">☁️ Bulutlu</button>
+                        <button onclick="setWeatherFilter('Yağmurlu')" class="weather-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer" data-weather="Yağmurlu">🌧️ Yağmurlu</button>
+                        <button onclick="setWeatherFilter('Karlı')" class="weather-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer" data-weather="Karlı">❄️ Karlı</button>
+                        <button onclick="setWeatherFilter('Rüzgarlı')" class="weather-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer" data-weather="Rüzgarlı">💨 Rüzgarlı</button>
+                    </div>
+                </div>
+
+                <div id="tagFiltersSection" class="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-700 hidden">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Etiketler</div>
+                    <div id="tagFilters" class="flex flex-row items-center gap-1.5 overflow-x-auto no-scrollbar pb-1"></div>
+                </div>
+            </div>
+
+            <div id="journalListContainer" class="space-y-3 max-h-[500px] overflow-y-auto pr-1"></div>
+        </div>
+
+    </main>
+
+    <!-- ÇAKIŞMA YÖNETİMİ SAĞ PANEL -->
+    <div id="conflictPanelOverlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex justify-end">
+        <div id="conflictPanel" class="h-full w-full max-w-lg bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200 dark:border-slate-800 z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
+            <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">⚠️</span>
+                    <h3 class="font-bold text-sm text-slate-900 dark:text-white">Bu Tarihte Zaten Günlük Var</h3>
+                </div>
+                <button onclick="closeConflictPanel()" class="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 text-xs font-semibold cursor-pointer">✕ Kapat</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-5 space-y-4 text-xs dark:text-slate-300">
+                <p class="text-slate-500 dark:text-slate-400">Seçtiğiniz tarih için sistemde zaten kayıtlı bir günlük bulunuyor. Nasıl devam etmek istediğinizi seçin:</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-800 space-y-2">
+                        <span class="font-bold text-slate-700 dark:text-slate-200 block border-b pb-1">📖 Eski Kayıt</span>
+                        <div><strong class="text-slate-500">Ruh Hali:</strong> <span id="confOldMood" class="text-amber-700 font-medium"></span></div>
+                        <div><strong class="text-slate-500">Hava:</strong> <span id="confOldWeather" class="text-sky-700 font-medium"></span></div>
+                        <div><strong class="text-slate-500">Metin:</strong> <p id="confOldContent" class="text-slate-600 dark:text-slate-300 mt-1 bg-white dark:bg-slate-900 p-2 rounded border border-slate-200 dark:border-slate-700 max-h-28 overflow-y-auto whitespace-pre-wrap break-words text-left"></p></div>
+                    </div>
+                    <div class="border border-amber-200 rounded-xl p-3 bg-amber-50/40 dark:bg-slate-800 space-y-2">
+                        <span class="font-bold text-amber-800 dark:text-amber-400 block border-b border-amber-200 dark:border-slate-700 pb-1">✍️ Yeni Yazdığın</span>
+                        <div><strong class="text-slate-500">Ruh Hali:</strong> <span id="confNewMood" class="text-amber-700 font-medium"></span></div>
+                        <div><strong class="text-slate-500">Hava:</strong> <span id="confNewWeather" class="text-sky-700 font-medium"></span></div>
+                        <div><strong class="text-slate-500">Metin:</strong> <p id="confNewContent" class="text-slate-600 dark:text-slate-300 mt-1 bg-white dark:bg-slate-900 p-2 rounded border border-slate-200 dark:border-slate-700 max-h-28 overflow-y-auto whitespace-pre-wrap break-words text-left"></p></div>
+                    </div>
+                </div>
+
+                <div class="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div>
+                        <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Hangi Veriler Kullanılsın?</label>
+                        <select id="confMetaChoice" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="old" selected>Eski kaydın ruh hali ve hava durumu kullanılsın (Varsayılan)</option>
+                            <option value="new">Yeni yazdıklarımın ruh hali ve hava durumu kullanılsın</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Metin Nasıl İşlensin?</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100">
+                                <input type="radio" name="confTextChoice" value="old" class="text-amber-600">
+                                <span>Sadece Eski Metin Kalsın</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100">
+                                <input type="radio" name="confTextChoice" value="new" class="text-amber-600" checked>
+                                <span>Sadece Yeni Metin Kalsın</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100">
+                                <input type="radio" name="confTextChoice" value="together" class="text-amber-600">
+                                <span>Beraber (Araya boşluk bırakılmadan direkt eklensin)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 flex gap-2">
+                <button onclick="resolveConflictAndSave()" class="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl transition cursor-pointer">
+                    ✓ Seçimi Onayla ve Kaydet
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HIZLI SÖZLÜK PANELİ -->
+    <div id="quickDictPanel" class="fixed right-0 top-0 h-full w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200 dark:border-slate-800 z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800">
+            <div class="flex items-center gap-2">
+                <span class="text-xl">🔍</span>
+                <h3 class="font-bold text-sm text-slate-900 dark:text-white">Hızlı Sözlük Arama</h3>
+            </div>
+            <button onclick="toggleQuickDict()" class="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 text-xs font-semibold cursor-pointer">✕ Kapat</button>
+        </div>
+        <div class="p-4 border-b border-slate-100 dark:border-slate-800 space-y-3">
+            <input type="text" id="dictSearchInput" placeholder="Kelime, anlam veya okunuş ara..." oninput="searchInDictionary(this.value)" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+            <div id="googleTranslateWrapper" class="hidden">
+                <a id="googleTranslateLink" href="#" target="_blank" class="w-full py-2 bg-sky-50 dark:bg-slate-800 hover:bg-sky-100 text-sky-700 dark:text-sky-300 text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5 border border-sky-200 dark:border-slate-700">
+                    🌐 Google Çeviri'de Ara →
+                </a>
+            </div>
+        </div>
+        <div id="dictResultsContainer" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50 dark:bg-slate-900/50">
+            <p class="text-xs text-slate-400 text-center py-10">Arama yapmak için yukarıya bir şeyler yazın...</p>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        
+        // Supabase Bağlantısı
+        const supabaseUrl = 'https://vchslwakepazewhujbmy.supabase.co';
+        const supabaseAnonKey = 'sb_publishable_4VlT4TkKQGtQdvorccjvtQ_yV4kSOjz';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        let pendingConflictData = null;
+        let activeMoodFilter = '';
+        let activeWeatherFilter = '';
+        let activeTagFilter = '';
+        let isDarkMode = localStorage.getItem('dark_mode') === 'true';
+
+        if (isDarkMode) document.body.classList.add('dark-mode');
+
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            localStorage.setItem('dark_mode', isDarkMode);
+            document.body.classList.toggle('dark-mode', isDarkMode);
+        }
+
+        // SUPABASE OTURUM KONTROLÜ VE ID ALMA
+        async function getActiveUserId() {
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            if (error || !session || !session.user) {
+                return null;
+            }
+            return session.user.id;
+        }
+
+        async function checkAuthAndDisplayState() {
+            const userId = await getActiveUserId();
+            const guestBanner = document.getElementById('guestBanner');
+            const writeSection = document.getElementById('writeSection');
+            const readSection = document.getElementById('readSection');
+
+            if (!userId) {
+                alert("Oturum açık değil!");
+                guestBanner.classList.remove('hidden');
+                writeSection.classList.add('hidden');
+                readSection.classList.add('hidden');
+            } else {
+                alert("Dikkat: bu sayfa hala geliştiriliyor. Geliştirme altyapı değil sayfaya özellik ekleme hakkındadır! Bu yüzden işlemlerinize devam edebilirsiniz. Verileriniz güvenle saklanmaya devam ediyor.");
+                guestBanner.classList.add('hidden');
+                writeSection.classList.remove('hidden');
+            }
+        }
+
+        window.onload = function() {
+            checkAuthAndDisplayState();
+
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            document.getElementById('journalDateInput').value = `${yyyy}-${mm}-${dd}`;
+
+            // Q Harfi Dinleyicisi: Günlük veya inputlara yazılmasını engeller, sadece paneli açıp kapatır.
+            window.addEventListener('keydown', function(e) {
+                if (e.key === 'q' || e.key === 'Q') {
+                    e.preventDefault(); 
+                    toggleQuickDict();
+                }
+            }, true);
+
+            window.addEventListener('click', function(e) {
+                const panel = document.getElementById('quickDictPanel');
+                const isOpen = panel.classList.contains('translate-x-0');
+                if (isOpen) {
+                    const isClickInside = panel.contains(e.target) || e.target.closest('button[onclick="toggleQuickDict()"]');
+                    if (!isClickInside) {
+                        toggleQuickDict();
+                    }
+                }
+            });
+        };
+
+        function toggleSearchBox() {
+            const container = document.getElementById('filterSearchContainer');
+            const btn = document.getElementById('searchToggleBtn');
+            const isHidden = container.classList.contains('hidden');
+
+            if (isHidden) {
+                container.classList.remove('hidden');
+                btn.classList.add('bg-amber-100', 'text-amber-700');
+                document.getElementById('journalSearchInput').focus();
+            } else {
+                resetAllFilters();
+                container.classList.add('hidden');
+                btn.classList.remove('bg-amber-100', 'text-amber-700');
+            }
+        }
+
+        function resetAllFilters() {
+            activeMoodFilter = '';
+            activeWeatherFilter = '';
+            activeTagFilter = '';
+            document.getElementById('journalSearchInput').value = '';
+
+            document.querySelectorAll('.mood-btn').forEach(btn => {
+                if (btn.getAttribute('data-mood') === '') {
+                    btn.className = "mood-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-600 text-white transition cursor-pointer";
+                } else {
+                    btn.className = "mood-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer";
+                }
+            });
+
+            document.querySelectorAll('.weather-btn').forEach(btn => {
+                if (btn.getAttribute('data-weather') === '') {
+                    btn.className = "weather-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-sky-600 text-white transition cursor-pointer";
+                } else {
+                    btn.className = "weather-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer";
+                }
+            });
+
+            renderJournalList();
+        }
+
+        function toggleQuickDict() {
+            const panel = document.getElementById('quickDictPanel');
+            const isOpen = panel.classList.contains('translate-x-0');
+            if (isOpen) {
+                panel.classList.remove('translate-x-0');
+                panel.classList.add('translate-x-full');
+                
+                document.getElementById('dictSearchInput').value = '';
+                document.getElementById('googleTranslateWrapper').classList.add('hidden');
+                document.getElementById('dictResultsContainer').innerHTML = `<p class="text-xs text-slate-400 text-center py-10">Arama yapmak için yukarıya bir şeyler yazın...</p>`;
+            } else {
+                panel.classList.remove('translate-x-full');
+                panel.classList.add('translate-x-0');
+                document.getElementById('dictSearchInput').focus();
+            }
+        }
+
+        // SUPABASE İLE GÜNLÜK VERİLERİNİ ÇEKME
+        async function getStoredJournals() {
+            const userId = await getActiveUserId();
+            if (!userId) return [];
+
+            const { data, error } = await supabaseClient
+                .from('diary')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error("Günlükler çekilirken hata:", error);
+                return [];
+            }
+            return data || [];
+        }
+
+        // SUPABASE İLE KAYDEDİLEN KELİMELERİ KONTROL ETME/ÇEKME
+        async function getSavedWords() {
+            const userId = await getActiveUserId();
+            if (!userId) return {};
+
+            const { data, error } = await supabaseClient
+                .from('saved_words')
+                .select('kanji')
+                .eq('user_id', userId);
+
+            if (error) {
+                console.error("Kayıtlı kelimeler çekilemedi:", error);
+                return {};
+            }
+
+            let map = {};
+            data.forEach(item => {
+                map[item.kanji] = true;
+            });
+            return map;
+        }
+
+        async function saveWord(wordId, buttonElement) {
+            const userId = await getActiveUserId();
+            if (!userId || !wordId) return;
+
+            const { data: existing, error: checkError } = await supabaseClient
+                .from('saved_words')
+                .select('word_id')
+                .eq('user_id', userId)
+                .eq('word_id', wordId)
+                .maybeSingle();
+
+            if (existing) {
+                if (buttonElement) {
+                    buttonElement.className = 'px-2.5 py-1 bg-emerald-100 text-emerald-700 text-[11px] font-semibold rounded-lg cursor-default';
+                    buttonElement.disabled = true;
+                    buttonElement.innerText = '✓ Ekli';
+                }
+                return;
+            }
+
+            const { error } = await supabaseClient
+                .from('saved_words')
+                .insert([{ user_id: userId, word_id: wordId }]);
+
+            if (error) {
+                console.error("Kelime kaydedilemedi:", error);
+                alert("Kelime kaydedilirken bir hata oluştu.");
+                return;
+            }
+
+            if (buttonElement) {
+                buttonElement.className = 'px-2.5 py-1 bg-emerald-100 text-emerald-700 text-[11px] font-semibold rounded-lg cursor-default';
+                buttonElement.disabled = true;
+                buttonElement.innerText = '✓ Ekli';
+            }
+        }
+
+        function toggleViewMode(mode) {
+            const writeSec = document.getElementById('writeSection');
+            const readSec = document.getElementById('readSection');
+
+            if (mode === 'list') {
+                writeSec.classList.add('hidden');
+                readSec.classList.remove('hidden');
+                renderJournalList();
+            } else {
+                resetAllFilters();
+                document.getElementById('filterSearchContainer').classList.add('hidden');
+                document.getElementById('searchToggleBtn').classList.remove('bg-amber-100', 'text-amber-700');
+
+                writeSec.classList.remove('hidden');
+                readSec.classList.add('hidden');
+            }
+        }
+
+        function setMoodFilter(mood) {
+            activeMoodFilter = mood;
+            document.querySelectorAll('.mood-btn').forEach(btn => {
+                if (btn.getAttribute('data-mood') === mood) {
+                    btn.className = "mood-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-600 text-white transition cursor-pointer";
+                } else {
+                    btn.className = "mood-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer";
+                }
+            });
+            renderJournalList();
+        }
+
+        function setWeatherFilter(weather) {
+            activeWeatherFilter = weather;
+            document.querySelectorAll('.weather-btn').forEach(btn => {
+                if (btn.getAttribute('data-weather') === weather) {
+                    btn.className = "weather-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-sky-600 text-white transition cursor-pointer";
+                } else {
+                    btn.className = "weather-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer";
+                }
+            });
+            renderJournalList();
+        }
+
+        function setTagFilter(tag) {
+            activeTagFilter = tag;
+            document.querySelectorAll('.tag-btn').forEach(btn => {
+                if (btn.getAttribute('data-tag') === tag) {
+                    btn.className = "tag-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-600 text-white transition cursor-pointer";
+                } else {
+                    btn.className = "tag-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer";
+                }
+            });
+            renderJournalList();
+        }
+
+        async function saveJournal() {
+            const userId = await getActiveUserId();
+            if (!userId) { alert("Oturum açmanız gerekiyor!"); return; }
+
+            const dateVal = document.getElementById('journalDateInput').value;
+            if (!dateVal) { alert("Lütfen bir tarih seçin!"); return; }
+
+            const content = document.getElementById('journalContent').value.trim();
+            if (!content) { alert("Günlük içeriği boş olamaz!"); return; }
+
+            const mood = document.getElementById('journalMood').value;
+            const weatherVal = document.getElementById('journalWeather').value;
+            const tagsRaw = document.getElementById('journalTags').value;
+            
+            const tags = tagsRaw.split(',')
+                .map(t => t.trim())
+                .filter(t => t.length > 0);
+
+            const parts = dateVal.split('-');
+            const formattedDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+
+            let journals = await getStoredJournals();
+            const existingEntry = journals.find(j => {
+                if (!j.created_at) return false;
+                let jDate = new Date(j.created_at).toISOString().split('T')[0];
+                return jDate === dateVal;
+            });
+
+            if (existingEntry) {
+                pendingConflictData = {
+                    existingEntry: {
+                        id: existingEntry.id,
+                        date: formattedDate,
+                        mood: existingEntry.mood,
+                        weather: existingEntry.weather,
+                        content: existingEntry.content,
+                        tags: existingEntry.tags || []
+                    },
+                    newEntry: {
+                        date: formattedDate,
+                        rawDate: dateVal,
+                        mood: mood,
+                        weather: weatherVal,
+                        tags: tags,
+                        content: content
+                    }
+                };
+
+                document.getElementById('confOldMood').innerText = existingEntry.mood;
+                document.getElementById('confOldWeather').innerText = existingEntry.weather;
+                document.getElementById('confOldContent').innerText = existingEntry.content;
+
+                document.getElementById('confNewMood').innerText = mood;
+                document.getElementById('confNewWeather').innerText = weatherVal;
+                document.getElementById('confNewContent').innerText = content;
+
+                document.getElementById('conflictPanelOverlay').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('conflictPanel').classList.remove('translate-x-full');
+                    document.getElementById('conflictPanel').classList.add('translate-x-0');
+                }, 10);
+                return;
+            }
+
+            await executeSave(dateVal, mood, weatherVal, tags, content);
+        }
+
+        async function executeSave(dateVal, mood, weatherVal, tags, content) {
+            const userId = await getActiveUserId();
+            if (!userId) return;
+
+            const timestamp = new Date(dateVal + 'T00:00:00').toISOString();
+
+            const { error } = await supabaseClient
+                .from('diary')
+                .insert([{
+                    user_id: userId,
+                    content: content,
+                    mood: mood,
+                    weather: weatherVal,
+                    tags: tags,
+                    created_at: timestamp
+                }]);
+
+            if (error) {
+                console.error("Günlük kaydedilemedi:", error);
+                alert("Günlük kaydedilirken bir hata oluştu.");
+                return;
+            }
+
+            alert("Günlük Supabase'e başarıyla kaydedildi!");
+            document.getElementById('journalContent').value = '';
+            document.getElementById('journalTags').value = '';
+            closeConflictPanel();
+            toggleViewMode('list');
+        }
+
+        function closeConflictPanel() {
+            const panel = document.getElementById('conflictPanel');
+            panel.classList.remove('translate-x-0');
+            panel.classList.add('translate-x-full');
+            setTimeout(() => {
+                document.getElementById('conflictPanelOverlay').classList.add('hidden');
+            }, 300);
+        }
+
+        async function resolveConflictAndSave() {
+            if (!pendingConflictData) return;
+
+            const oldE = pendingConflictData.existingEntry;
+            const newE = pendingConflictData.newEntry;
+
+            const metaChoice = document.getElementById('confMetaChoice').value;
+            const finalMood = (metaChoice === 'new') ? newE.mood : oldE.mood;
+            const finalWeather = (metaChoice === 'new') ? newE.weather : oldE.weather;
+            
+            let combinedTags = [...new Set([...(oldE.tags || []), ...(newE.tags || [])])];
+
+            const textChoice = document.querySelector('input[name="confTextChoice"]:checked').value;
+            let finalContent = '';
+
+            if (textChoice === 'old') {
+                finalContent = oldE.content;
+            } else if (textChoice === 'new') {
+                finalContent = newE.content;
+            } else if (textChoice === 'together') {
+                finalContent = oldE.content + "\n" + newE.content;
+            }
+
+            await supabaseClient.from('diary').delete().eq('id', oldE.id);
+            await executeSave(newE.rawDate, finalMood, finalWeather, combinedTags, finalContent);
+        }
+
+        function getMonthBadgeColor(monthStr) {
+            switch(monthStr) {
+                case '01': return 'bg-blue-100 text-blue-800 border-blue-300';
+                case '02': return 'bg-cyan-100 text-cyan-800 border-cyan-300';
+                case '03': return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+                case '04': return 'bg-green-100 text-green-800 border-green-300';
+                case '05': return 'bg-lime-100 text-lime-800 border-lime-300';
+                case '06': return 'bg-amber-100 text-amber-800 border-amber-300';
+                case '07': return 'bg-orange-100 text-orange-800 border-orange-300';
+                case '08': return 'bg-rose-100 text-rose-800 border-rose-300';
+                case '09': return 'bg-purple-100 text-purple-800 border-purple-300';
+                case '10': return 'bg-violet-100 text-violet-800 border-violet-300';
+                case '11': return 'bg-indigo-100 text-indigo-800 border-indigo-300';
+                case '12': return 'bg-sky-100 text-sky-800 border-sky-300';
+                default: return 'bg-slate-100 text-slate-800 border-slate-300';
+            }
+        }
+
+        function updateDynamicTagFilters(journals) {
+            const tagFiltersContainer = document.getElementById('tagFilters');
+            const tagSection = document.getElementById('tagFiltersSection');
+            
+            let allTags = [];
+            journals.forEach(j => {
+                if (j.tags && Array.isArray(j.tags)) {
+                    j.tags.forEach(t => {
+                        if (!allTags.includes(t)) allTags.push(t);
+                    });
+                }
+            });
+
+            if (allTags.length === 0) {
+                tagSection.classList.add('hidden');
+                return;
+            }
+
+            tagSection.classList.remove('hidden');
+            tagFiltersContainer.innerHTML = `
+                <button onclick="setTagFilter('')" class="tag-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium ${activeTagFilter === '' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200'} transition cursor-pointer" data-tag="">Tümü</button>
+            `;
+
+            allTags.forEach(tag => {
+                const isActive = activeTagFilter === tag;
+                const btnClass = isActive ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200';
+                tagFiltersContainer.innerHTML += `
+                    <button onclick="setTagFilter('${tag}')" class="tag-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium ${btnClass} transition cursor-pointer" data-tag="${tag}">#${tag}</button>
+                `;
+            });
+        }
+
+        async function renderJournalList() {
+            const container = document.getElementById('journalListContainer');
+            container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Yükleniyor...</p>`;
+            
+            let journals = await getStoredJournals();
+            container.innerHTML = '';
+
+            updateDynamicTagFilters(journals);
+
+            const searchInputEl = document.getElementById('journalSearchInput');
+            const searchQuery = searchInputEl ? searchInputEl.value.toLowerCase().trim() : '';
+
+            let filteredJournals = journals.filter(item => {
+                let itemDateStr = item.created_at ? new Date(item.created_at).toLocaleDateString('tr-TR') : '';
+                const matchesMood = activeMoodFilter === '' || (item.mood && item.mood.includes(activeMoodFilter));
+                const matchesWeather = activeWeatherFilter === '' || (item.weather && item.weather.includes(activeWeatherFilter));
+                const matchesTag = activeTagFilter === '' || (item.tags && item.tags.includes(activeTagFilter));
+                
+                const matchesSearch = searchQuery === '' || 
+                    (item.content && item.content.toLowerCase().includes(searchQuery)) ||
+                    (itemDateStr.includes(searchQuery)) ||
+                    (item.mood && item.mood.toLowerCase().includes(searchQuery)) ||
+                    (item.tags && item.tags.some(t => t.toLowerCase().includes(searchQuery)));
+
+                return matchesMood && matchesWeather && matchesTag && matchesSearch;
+            });
+
+            if (filteredJournals.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Kriterlere uygun kayıtlı günlük bulunmuyor.</p>`;
+                return;
+            }
+
+            filteredJournals.forEach((item, index) => {
+                const contentId = `journalContent_${index}`;
+                const iconId = `icon_${index}`;
+                const cleanContent = item.content ? item.content.trim() : '';
+                
+                let formattedDate = item.created_at ? new Date(item.created_at).toLocaleDateString('tr-TR') : '01.01.2026';
+                let monthCode = formattedDate.split('.')[1] || '01';
+                const monthBadgeStyle = getMonthBadgeColor(monthCode);
+
+                let tagsHtml = '';
+                if (item.tags && item.tags.length > 0) {
+                    tagsHtml = `<div class="flex items-center gap-1 flex-wrap mt-2">`;
+                    item.tags.forEach(t => {
+                        tagsHtml += `<span class="bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded text-[10px] font-medium">#${t}</span>`;
+                    });
+                    tagsHtml += `</div>`;
+                }
+
+                container.innerHTML += `
+                    <div class="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl overflow-hidden transition shadow-xs">
+                        <div class="w-full p-3 flex items-center justify-between text-left bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition text-xs">
+                            <div onclick="toggleJournalContent('${contentId}', '${iconId}')" class="flex items-center gap-2 sm:gap-3 flex-wrap flex-1 cursor-pointer">
+                                <span class="font-bold px-2.5 py-1 rounded-lg border shadow-xs ${monthBadgeStyle}">${formattedDate}</span>
+                                <div class="flex items-center gap-1.5 sm:gap-2 text-slate-600 dark:text-slate-300">
+                                    <span class="bg-amber-50 dark:bg-slate-800 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded text-[10px] sm:text-[11px] truncate max-w-[100px] sm:max-w-none">${item.mood || ''}</span>
+                                    <span class="bg-sky-50 dark:bg-slate-800 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded text-[10px] sm:text-[11px] truncate max-w-[90px] sm:max-w-none">${item.weather || ''}</span>
+                                </div>
+                            </div>
+                            <div onclick="toggleJournalContent('${contentId}', '${iconId}')" class="cursor-pointer p-1 shrink-0 ml-2">
+                                <svg id="${iconId}" class="w-4 h-4 text-slate-400 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+                        <div id="${contentId}" class="accordion-content">
+                            <div class="accordion-inner border-t border-slate-100 dark:border-slate-800 space-y-3">
+                                <div class="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words text-left leading-relaxed">
+                                    ${cleanContent}
+                                </div>
+                                ${tagsHtml}
+                                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                    <button onclick='copyJournal(${JSON.stringify(formattedDate)}, ${JSON.stringify(item.mood)}, ${JSON.stringify(item.weather)}, ${JSON.stringify(cleanContent)})' class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg text-[11px] font-semibold transition cursor-pointer flex items-center gap-1">
+                                        📋 <span>Kopyala</span>
+                                    </button>
+                                    <button onclick="deleteJournal('${item.id}')" class="px-2.5 py-1 bg-rose-50 dark:bg-slate-800 hover:bg-rose-100 text-rose-600 dark:text-rose-400 rounded-lg text-[11px] font-semibold transition cursor-pointer flex items-center gap-1">
+                                        🗑️ <span>Sil</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function copyJournal(date, mood, weather, content) {
+            const fullText = `Tarih: ${date}\nRuh Hali: ${mood}\nHava Durumu: ${weather}\n\n${content}`;
+            navigator.clipboard.writeText(fullText).then(() => {
+                alert("Günlük bilgileri panoya kopyalandı!");
+            }).catch(err => {
+                alert("Kopyalama başarısız oldu.");
+            });
+        }
+
+        function toggleJournalContent(contentId, iconId) {
+            const contentEl = document.getElementById(contentId);
+            const iconEl = document.getElementById(iconId);
+            const isOpen = contentEl.classList.contains('open');
+
+            document.querySelectorAll('.accordion-content').forEach(el => {
+                if (el.id !== contentId) el.classList.remove('open');
+            });
+            document.querySelectorAll('[id^="icon_"]').forEach(ic => {
+                if (ic.id !== iconId) ic.classList.remove('rotate-180');
+            });
+
+            if (isOpen) {
+                contentEl.classList.remove('open');
+                iconEl.classList.remove('rotate-180');
+            } else {
+                contentEl.classList.add('open');
+                iconEl.classList.add('rotate-180');
+            }
+        }
+
+        async function deleteJournal(id) {
+            if (!confirm("Bu günlüğü silmek istediğinize emin misiniz?")) return;
+            const { error } = await supabaseClient.from('diary').delete().eq('id', id);
+            if (error) {
+                alert("Silinirken bir hata oluştu.");
+                return;
+            }
+            renderJournalList();
+        }
+
+        let searchTimeout = null;
+        function searchInDictionary(query) {
+            const trimmedQuery = query.trim();
+            const googleWrapper = document.getElementById('googleTranslateWrapper');
+            const googleLink = document.getElementById('googleTranslateLink');
+            const resultsContainer = document.getElementById('dictResultsContainer');
+
+            if (trimmedQuery.length > 0) {
+                googleWrapper.classList.remove('hidden');
+                const encoded = encodeURIComponent(trimmedQuery);
+                googleLink.href = `https://translate.google.com/?sl=tr&tl=ja&text=${encoded}&op=translate`;
+            } else {
+                googleWrapper.classList.add('hidden');
+                resultsContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-10">Arama yapmak için yukarıya bir şeyler yazın...</p>`;
+                return;
+            }
+
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                resultsContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-10">Aranıyor...</p>`;
+
+                const { data, error } = await supabaseClient
+                    .from('dictionary')
+                    .select('*')
+                    .or(`kanji.ilike.%${trimmedQuery}%,kana.ilike.%${trimmedQuery}%,romaji.ilike.%${trimmedQuery}%,meaning.ilike.%${trimmedQuery}%`)
+                    .limit(10);
+
+                if (error) {
+                    resultsContainer.innerHTML = `<p class="text-xs text-rose-500 text-center py-10">Arama yapılırken bir hata oluştu.</p>`;
+                    return;
+                }
+
+                resultsContainer.innerHTML = '';
+
+                if (!data || data.length === 0) {
+                    resultsContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-10">Sonuç bulunamadı.</p>`;
+                    return;
+                }
+
+                let savedWords = await getSavedWords();
+
+                data.forEach(item => {
+                    const kanji = item.kanji || '';
+                    const kana = item.kana || '';
+                    const romaji = item.romaji || '';
+                    const meaning = item.meaning || '';
+                    const pos = item.pos || 'Kelime';
+                    const isSaved = savedWords[kanji] === true;
+
+                    resultsContainer.innerHTML += `
+                        <div class="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-2 text-xs">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <span class="font-bold text-sm text-indigo-600 dark:text-indigo-400">${kanji}</span>
+                                    <span class="text-slate-500 dark:text-slate-400 ml-2 font-medium">${kana ? `(${kana})` : ''}</span>
+                                    <span class="text-slate-400 ml-1 text-[11px]">${romaji ? `[${romaji}]` : ''}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-indigo-50 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded text-[10px] font-semibold">${pos}</span>
+                                    <button onclick='saveWord(${JSON.stringify(item.word_id)}, this)' 
+                                        class="${isSaved ? 'px-2.5 py-1 bg-emerald-100 text-emerald-700 text-[11px] font-semibold rounded-lg cursor-default' : 'px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold rounded-lg transition cursor-pointer'}"
+                                        ${isSaved ? 'disabled' : ''}>
+                                        ${isSaved ? '✓ Ekli' : '＋ Ekle'}
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="text-slate-700 dark:text-slate-300 font-medium border-t border-slate-100 dark:border-slate-700 pt-1.5">
+                                <span class="text-slate-400 font-normal">Anlam:</span> ${meaning}
+                            </div>
+                        </div>
+                    `;
+                });
+            }, 300);
+        }
+    </script>
+</body>
+</html>

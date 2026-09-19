@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ormyn - Blog</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="/cookie-banner.js"></script>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Ortak CSS Dosyası -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <style>
+        .main-container {
+            flex: 1;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: var(--backdrop-blur);
+            padding: 1.5rem;
+            border-radius: 1.25rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+        .section-title { 
+            font-weight: 700; 
+            font-size: 1rem; 
+            color: var(--text-dark); 
+            margin-bottom: 1rem; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+        }
+        .tab-nav { 
+            display: flex; 
+            gap: 0.5rem; 
+            overflow-x: auto; 
+            padding-bottom: 0.25rem; 
+            margin-bottom: 0.5rem; 
+            scrollbar-width: none; 
+        }
+        .tab-nav::-webkit-scrollbar { display: none; }
+        .tab-btn { 
+            padding: 0.5rem 1rem; 
+            border-radius: 0.75rem; 
+            font-size: 0.85rem; 
+            font-weight: 700; 
+            border: 1px solid var(--border-color); 
+            background: var(--btn-bg); 
+            color: var(--text-muted); 
+            cursor: pointer; 
+            white-space: nowrap; 
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { background: var(--btn-hover); color: var(--text-dark); }
+        .tab-btn.active { background: linear-gradient(135deg, var(--primary-anime) 0%, var(--primary-indigo) 100%); color: white; border-color: transparent; }
+        .tab-pane { display: none; flex-direction: column; gap: 1.25rem; }
+        .tab-pane.active { display: flex; }
+        .search-input { 
+            width: 100%; 
+            padding: 0.75rem 1rem; 
+            border-radius: 0.75rem; 
+            border: 1px solid var(--border-color); 
+            font-size: 0.95rem; 
+            font-family: inherit; 
+            outline: none; 
+            background: var(--card-bg); 
+            color: var(--text-dark); 
+        }
+        .search-input:focus { border-color: var(--primary-anime); }
+        .blog-list { display: flex; flex-direction: column; gap: 0.875rem; }
+        .blog-card { 
+            background: var(--btn-bg); 
+            border: 1px solid var(--border-color); 
+            padding: 1rem 1.25rem; 
+            border-radius: 0.875rem; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            text-decoration: none; 
+        }
+        .blog-card:hover { transform: translateY(-2px); border-color: var(--primary-indigo); }
+        .blog-info { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+        .blog-title-card { font-size: 1rem; font-weight: 700; color: var(--text-dark); }
+        .card-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+        .tag { 
+            background: var(--badge-bg); 
+            color: var(--badge-text); 
+            font-size: 0.7rem; 
+            font-weight: 700; 
+            padding: 0.15rem 0.5rem; 
+            border-radius: 9999px; 
+        }
+        .no-data { text-align: center; color: var(--text-muted); padding: 1.5rem; font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+
+    <div id="navbar-placeholder"></div>
+
+    <div class="main-container">
+        <div id="listView" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="card">
+                <div style="margin-bottom: 1rem;">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Başlık veya etiketlerde ara...">
+                </div>
+                <div class="tab-nav">
+                    <button class="tab-btn" data-tab="arama" onclick="switchTab('arama')">🔍 Arama</button>
+                    <button class="tab-btn active" data-tab="yeniler" onclick="switchTab('yeniler')">🔥 Yeniler</button>
+                    <button class="tab-btn" data-tab="kesfet" onclick="switchTab('kesfet')">✨ Keşfet</button>
+                    <button class="tab-btn" data-tab="seriler" onclick="switchTab('seriler')">⚡ Toplu</button>
+                    <button class="tab-btn" data-tab="bakilanlar" onclick="switchTab('bakilanlar')">👁️ Bakılanlar</button>
+                </div>
+            </div>
+
+            <div id="tab-arama" class="tab-pane card">
+                <div class="section-title">🔍 Arama Sonuçları</div>
+                <div id="searchBlogsList" class="blog-list"><div class="no-data">Aramak istediğiniz kelimeyi yukarıya yazın.</div></div>
+                <button id="searchLoadMoreBtn" class="btn btn-anime" onclick="loadMoreSearch()" style="display: none; width: 100%; margin-top: 1rem;">Daha Fazla Göster</button>
+            </div>
+
+            <div id="tab-yeniler" class="tab-pane card active">
+                <div class="section-title">🔥 Yeniler</div>
+                <div id="newBlogsList" class="blog-list"><div class="no-data">Yükleniyor...</div></div>
+            </div>
+
+            <div id="tab-kesfet" class="tab-pane card">
+                <div class="section-title">✨ Keşfet</div>
+                <div id="exploreBlogsList" class="blog-list"><div class="no-data">Yükleniyor...</div></div>
+                <button id="loadMoreBtn" class="btn btn-anime" onclick="loadMoreExplore()" style="display: none; width: 100%; margin-top: 1rem;">Daha Fazla Göster</button>
+            </div>
+
+            <div id="tab-seriler" class="tab-pane"></div>
+
+            <div id="tab-bakilanlar" class="tab-pane card">
+                <div class="section-title">👁️ Göz Attıkların</div>
+                <div id="historyBlogsList" class="blog-list"><div class="no-data">Henüz hiçbir içeriğe tıklamadınız.</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script>
+        const SERIES_DICTIONARY = { "Öne Çıkanlar": [3, 4, 6], "Temel Okuma": [3, 4, 6] };
+        let allBlogs = [];
+        let displayedExploreCount = 0;
+        const EXPLORE_BATCH_SIZE = 10;
+        let currentSearchQuery = '';
+        let currentSearchResults = [];
+        let displayedSearchCount = 0;
+        const SEARCH_BATCH_SIZE = 15;
+        let currentExplorePool = [];
+
+        async function initBlogPage() {
+            // Veritabanından page_url sütununu da çekiyoruz
+            const { data } = await supabaseClient.from('blogs').select('blog_id, title, tags, created_at, page_url').order('created_at', { ascending: false });
+            if (data) allBlogs = data;
+            renderAllSections();
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === tabName));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            if (tabName === 'bakilanlar') renderHistoryTab();
+        }
+
+        function renderAllSections() {
+            renderNewBlogs();
+            renderSeriesTab();
+            renderExploreBlogs(true);
+            renderHistoryTab();
+        }
+
+        function renderNewBlogs() {
+            const container = document.getElementById('newBlogsList');
+            const oneWeekAgo = new Date(); 
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            let list = allBlogs.filter(b => new Date(b.created_at) >= oneWeekAgo);
+            if (list.length === 0) list = allBlogs.slice(0, 5);
+            container.innerHTML = list.length === 0 ? '<div class="no-data">İçerik bulunmuyor.</div>' : list.map(b => buildBlogCardHtml(b)).join('');
+        }
+
+        function renderSeriesTab() {
+            const container = document.getElementById('tab-seriler');
+            container.innerHTML = '';
+            Object.keys(SERIES_DICTIONARY).forEach(sName => {
+                const matched = SERIES_DICTIONARY[sName].map(id => allBlogs.find(b => b.blog_id == id)).filter(Boolean);
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `<div class="section-title">⚡ ${escapeHtml(sName)}</div><div class="blog-list">${matched.map(b => buildBlogCardHtml(b)).join('')}</div>`;
+                container.appendChild(div);
+            });
+        }
+
+        function renderExploreBlogs(reset = false) {
+            const container = document.getElementById('exploreBlogsList');
+            const loadBtn = document.getElementById('loadMoreBtn');
+            if (reset) {
+                currentExplorePool = [...allBlogs].sort(() => 0.5 - Math.random());
+                displayedExploreCount = 0;
+            }
+            const batch = currentExplorePool.slice(0, displayedExploreCount + EXPLORE_BATCH_SIZE);
+            displayedExploreCount = batch.length;
+            container.innerHTML = batch.length === 0 ? '<div class="no-data">İçerik kalmadı.</div>' : batch.map(b => buildBlogCardHtml(b)).join('');
+            loadBtn.style.display = displayedExploreCount >= currentExplorePool.length ? 'none' : 'block';
+        }
+        function loadMoreExplore() { displayedExploreCount += EXPLORE_BATCH_SIZE; renderExploreBlogs(false); }
+
+        function renderHistoryTab() {
+            const container = document.getElementById('historyBlogsList');
+            const viewed = JSON.parse(localStorage.getItem('viewed_blog_titles') || '[]');
+            const list = viewed.map(title => allBlogs.find(b => b.title === title)).filter(Boolean);
+            container.innerHTML = list.length === 0 ? '<div class="no-data">Henüz tıklamadınız.</div>' : list.map(b => buildBlogCardHtml(b)).join('');
+        }
+
+        function formatTagsHtml(tagsText) {
+            if (!tagsText) return '';
+            return tagsText.split(',')
+                .map(t => t.trim())
+                .filter(Boolean)
+                .map(t => `<span class="tag">#${escapeHtml(t)}</span>`)
+                .join('');
+        }
+
+        function buildBlogCardHtml(blog) {
+            const tags = formatTagsHtml(blog.tags);
+            // Tablodaki page_url değerini kullanıyoruz (örn: dijitalde-gulme)
+            const targetUrl = `/blog/${blog.page_url || ''}`; 
+            
+            return `
+                <a href="${targetUrl}" class="blog-card" onclick="saveHistory('${escapeHtml(blog.title)}')">
+                    <div class="blog-info">
+                        <h3 class="blog-title-card">${escapeHtml(blog.title)}</h3>
+                        <div class="card-meta">${tags}</div>
+                    </div>
+                </a>
+            `;
+        }
+
+        function saveHistory(title) {
+            let viewed = JSON.parse(localStorage.getItem('viewed_blog_titles') || '[]');
+            if (!viewed.includes(title)) { 
+                viewed.push(title); 
+                localStorage.setItem('viewed_blog_titles', JSON.stringify(viewed)); 
+            }
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase().trim();
+            currentSearchQuery = q;
+            const container = document.getElementById('searchBlogsList');
+            const loadMoreBtn = document.getElementById('searchLoadMoreBtn');
+
+            if (!q) {
+                container.innerHTML = '<div class="no-data">Aramak istediğiniz kelimeyi yukarıya yazın.</div>';
+                loadMoreBtn.style.display = 'none';
+                return;
+            }
+            switchTab('arama');
+            currentSearchResults = allBlogs.filter(b => (b.title && b.title.toLowerCase().includes(q)) || (b.tags && b.tags.toLowerCase().includes(q)));
+            displayedSearchCount = 0;
+            renderSearchBatch(true);
+        });
+
+        function renderSearchBatch(reset = false) {
+            const container = document.getElementById('searchBlogsList');
+            const loadMoreBtn = document.getElementById('searchLoadMoreBtn');
+            if (reset) displayedSearchCount = 0;
+            const batch = currentSearchResults.slice(0, displayedSearchCount + SEARCH_BATCH_SIZE);
+            displayedSearchCount = batch.length;
+            if (batch.length === 0) {
+                container.innerHTML = '<div class="no-data">Sonuç bulunamadı.</div>';
+                loadMoreBtn.style.display = 'none';
+            } else {
+                container.innerHTML = batch.map(b => buildBlogCardHtml(b)).join('');
+                loadMoreBtn.style.display = displayedSearchCount >= currentSearchResults.length ? 'none' : 'block';
+            }
+        }
+
+        function loadMoreSearch() {
+            displayedSearchCount += SEARCH_BATCH_SIZE;
+            renderSearchBatch(false);
+        }
+
+        function escapeHtml(str) {
+            return str ? str.replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t])) : '';
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await loadComponents();
+            await initApp();
+            await initBlogPage();
+        });
+    </script>
+    <script src="/app.js"></script>
+</body>
+</html>

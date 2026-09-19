@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Open Graph / Sosyal Medya Paylaşım Etiketleri -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tsutabi.com/"> <!-- Sitenizin güncel linki -->
+<meta property="og:title" content="TsuTabi - Başka Bir Öğrenim Deneyimi">
+<meta property="og:description" content="Dil öğrenimini hızlandırmak, sorularla pekiştirmek ve hemen üretimle kalıcılığı yakalamak için harika bir platform.">
+<meta property="og:image" content="https://tsutabi.com/og-image.png"> <!-- Paylaşıldığında görünecek görselin tam URL'si -->
+
+<!-- Twitter / X İçin Ek Etiketler -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://tsutabi.com/">
+<meta name="twitter:title" content="TsuTabi - Kelime Öğrenme Yolculuğu">
+<meta property="twitter:description" content="Dil öğrenimini hızlandırmak, sorularla pekiştirmek ve hemen üretimle kalıcılığı yakalamak için harika bir platform.">
+<meta name="twitter:image" content="https://tsutabi.com/og-image.png">
+    <title>TsuTabi - Hoş Geldiniz</title>
+    
+    <!-- Çerez ve Consent Mode Yönetimi -->
+    <script src="/cookie-banner.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Ortak CSS Dosyası (Navbar, Footer, Tema Değişkenleri ve Genel Stiller) -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <style>
+        /* --- SAYFAYA ÖZEL EK STİLLER --- */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4rem;
+            flex: 1;
+            width: 100%;
+        }
+
+        /* 1. Karşılama Alanı */
+        .hero-section {
+            text-align: center;
+            padding: 3rem 1rem;
+            background: var(--card-bg);
+            backdrop-filter: var(--backdrop-blur);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.25rem;
+        }
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            max-width: 700px;
+            line-height: 1.2;
+        }
+        .hero-desc {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            max-width: 550px;
+        }
+        .hero-buttons {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        /* 2. Slide Show */
+        .slideshow-section {
+            position: relative;
+            width: 100%;
+            height: 380px;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+        .slide {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.6s ease-in-out, visibility 0.6s;
+            display: flex;
+            align-items: center;
+            background-size: cover;
+            background-position: center;
+            padding: 3rem;
+        }
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(90deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.4) 100%);
+            z-index: 1;
+        }
+        .slide-content {
+            position: relative;
+            z-index: 2;
+            color: #fff;
+            max-width: 500px;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.5s ease 0.3s;
+        }
+        .slide.active .slide-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .slide-content h3 { font-size: 1.75rem; font-weight: 800; margin-bottom: 0.5rem; }
+        .slide-content p { font-size: 0.9rem; color: #cbd5e1; line-height: 1.5; }
+
+        .slide-dots {
+            position: absolute;
+            bottom: 1rem; right: 1.5rem;
+            z-index: 3;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            cursor: pointer; transition: background 0.3s;
+        }
+        .dot.active { background: #fff; width: 24px; border-radius: 4px; }
+
+        /* Blog Kısmı */
+        .blog-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .section-title { font-size: 1.25rem; font-weight: 800; color: var(--text-dark); }
+        
+        .blog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+        }
+        .blog-card {
+            background: var(--card-bg);
+            backdrop-filter: var(--backdrop-blur);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            text-decoration: none;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .blog-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary-anime);
+        }
+        .blog-tag {
+            font-size: 0.65rem; font-weight: 700; color: var(--primary-anime);
+            background: rgba(236, 72, 153, 0.1); padding: 0.2rem 0.5rem; border-radius: 4px; width: fit-content;
+        }
+        .blog-card h4 { font-size: 0.95rem; font-weight: 700; color: var(--text-dark); line-height: 1.4; }
+        .blog-card p { font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
+
+        @media (max-width: 768px) {
+            .hero-title { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- app.js üzerinden navbar.html buraya yüklenecek -->
+    <div id="navbar-placeholder" style="width: 100%;"></div>
+
+    <!-- Ana Sayfa İçeriği -->
+    <main class="main-container">
+        
+        <!-- 1. Karşılama Alanı -->
+        <section class="hero-section">
+            <h2 class="hero-title">Dijital Çalışma ve Üretkenlik Alanına Hoş Geldiniz</h2>
+            <p class="hero-desc">Öğrenmek istediklerini belirle, çalışmaya devam et ve öğrenilenlerle üretmeye başla. Her yerden sözlüğe erişim ve hızlı öğrenim havuzunu doldurma ile öğrenim sürtünmesini yen!</p>
+            <!-- Oturum durumuna göre dinamik doldurulacak alan -->
+            <div class="hero-buttons" id="heroAuthButtons"></div>
+        </section>
+
+        <!-- 2. Slide Show -->
+        <section class="slideshow-section" id="slideshow">
+            <div class="slide active" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80');">
+                <div class="slide-content">
+                    <h3>Gelişmiş Çalışma Alanı</h3>
+                    <p>Ne mi yapacaksınız? Bazen bu kısmı düşünmek yorucu olabiliyor. Ama burada yapılacaklar nettir. İstediğiniz şekilde çalışabilirsiniz veya sıra ile Öğrenme, Çalışma, Okuma ve Yazma sırasını takip edebilirsiniz!</p>
+                </div>
+            </div>
+            <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1200&q=80');">
+                <div class="slide-content">
+                    <h3>Mini Sınavlar ile Öğrenin</h3>
+                    <p>Quizlerle bilgilerini yoklayın, zorlaşan sorularla iyice pekiştirin ve kalıcılığı en üst düzeye çıkarın.</p>
+                </div>
+            </div>
+            <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=1200&q=80');">
+                <div class="slide-content">
+                    <h3>Aralıklı Tekrar Yöntemi</h3>
+                    <p>Artık tamamdır denilen kelimelerin ayrı olarak çalışılması bazen motivasyon kaybına yol açabilir. Kendime yeni şeyler katmıyorum hissi verebilir. Ama çalışılmazsa unutulma riski de her zaman masada. Bu yüzden aralıklı tekrar aracımız sayesinde pekiştirdiklerinize ayrı süre vermeyin ve her gün hızlıca göz atarak unutma riskini sıfıra indirin!</p>
+                </div>
+            </div>
+            <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1200&q=80');">
+                <div class="slide-content">
+                    <h3>Biraz Karıştırın</h3>
+                    <p>Blog sayfasında hem dil bilgisi öğrenin hem de farklı içerikleri keşfedin. Bazen düz kural öğrenmek yerine insanların kültür ve düşünüş biçimlerini okumak ufuk açar.</p>
+                </div>
+            </div>
+
+            <div class="slide-dots">
+                <span class="dot active" onclick="currentSlide(0)"></span>
+                <span class="dot" onclick="currentSlide(1)"></span>
+                <span class="dot" onclick="currentSlide(2)"></span>
+                <span class="dot" onclick="currentSlide(3)"></span>
+            </div>
+        </section>
+
+        <!-- Blog Kısmı -->
+        <section class="blog-section">
+            <div class="section-header">
+                <h3 class="section-title">Öne Çıkanlar</h3>
+                <a href="/blog" style="font-size: 0.75rem; font-weight: 700; color: var(--primary-anime); text-decoration: none;">Tümünü Gör ➔</a>
+            </div>
+            <div class="blog-grid">
+                <a href="/emretmenin-4-farkli-yuzu" class="blog-card">
+                    <span class="blog-tag">Farklı Düşünme</span>
+                    <h4>Emretmenin 4 farklı yüzü</h4>
+                </a>
+                <a href="/dijitalde-gulme" class="blog-card">
+                    <span class="blog-tag">Sanal</span>
+                    <h4>Dijitalde Gülme</h4>
+                </a>
+                <a href="/turkce-dusunup-japonca-cuvalladigimiz-o-an" class="blog-card">
+                    <span class="blog-tag">Farklar</span>
+                    <h4>Türkçe Düşünüp Japonca Çuvalladığımız O An</h4>
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- app.js üzerinden footer.html buraya yüklenecek -->
+    <div id="footer-placeholder" style="width: 100%; display: flex; flex-direction: column;"></div>
+
+    <!-- İlk Kutu İçin Oturum Kontrolü ve Buton Yerleştirme -->
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            setTimeout(async () => {
+                const container = document.getElementById('heroAuthButtons');
+                if (!container) return;
+
+                // app.js içerisindeki küresel değişken veya doğrudan supabaseClient üzerinden kontrol
+                let hasSession = false;
+                try {
+                    if (typeof currentUser !== 'undefined' && currentUser) {
+                        hasSession = true;
+                    } else if (typeof supabaseClient !== 'undefined') {
+                        const { data: { session } } = await supabaseClient.auth.getSession();
+                        if (session) hasSession = true;
+                    }
+                } catch (e) {
+                    console.error("Oturum kontrolü hatası:", e);
+                }
+
+                if (hasSession) {
+                    container.innerHTML = `
+                        <a href="/dashboard" class="btn btn-anime" style="padding: 0.65rem 1.25rem; font-size: 0.85rem;">Çalışma Alanı</a>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <a href="/register" class="btn btn-outline" style="padding: 0.65rem 1.25rem; font-size: 0.85rem;">Oturum Aç</a>
+                        <a href="/register?type=signup" class="btn btn-anime" style="padding: 0.65rem 1.25rem; font-size: 0.85rem;">Kayıt Ol</a>
+                    `;
+                }
+            }, 300);
+        });
+    </script>
+
+    <!-- Sayfaya Özel Slide Show Mantığı -->
+    <script>
+        let slideIndex = 0;
+        const slides = document.querySelectorAll('.slide');
+        const dots = document.querySelectorAll('.dot');
+
+        function showSlide(n) {
+            if (slides.length === 0) return;
+            slides.forEach(s => s.classList.remove('active'));
+            dots.forEach(d => d.classList.remove('active'));
+            
+            slideIndex = (n + slides.length) % slides.length;
+            
+            slides[slideIndex].classList.add('active');
+            dots[slideIndex].classList.add('active');
+        }
+
+        function currentSlide(n) {
+            showSlide(n);
+        }
+
+        setInterval(() => {
+            showSlide(slideIndex + 1);
+        }, 4000);
+
+        // Sayfa bileşenleri yüklendikten sonra ana app.js çalıştırılır
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (typeof loadComponents === 'function') await loadComponents();
+            if (typeof initApp === 'function') await initApp();
+        });
+    </script>
+
+    <!-- Ortak app.js Entegrasyonu -->
+    <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Doğrulama</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        h2 { color: #28a745; }
+        p { color: #555; }
+        .spinner {
+            margin: 20px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div id="loading">
+            <h2>İşleniyor...</h2>
+            <div class="spinner"></div>
+            <p>Hesabınız doğrulanıyor, lütfen bekleyin.</p>
+        </div>
+        
+        <div id="success" style="display: none;">
+            <h2>🎉 Başarılı!</h2>
+            <p>Hesabınız başarıyla doğrulandı.</p>
+            <p>Birkaç saniye içinde giriş sayfasına yönlendirileceksiniz...</p>
+        </div>
+
+        <div id="error" style="display: none;">
+            <h2>❌ Hata Oluştu</h2>
+            <p id="error-message">Doğrulama bağlantısı geçersiz veya süresi dolmuş.</p>
+        </div>
+    </div>
+
+    <!-- Supabase CDN üzerinden projeye dahil edilir -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase bağlantı bilgileriniz (Kendi bilgilerinizle değiştirin)
+        const SUPABASE_URL = 'https://vchslwakepazewhujbmy.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_4VlT4TkKQGtQdvorccjvtQ_yV4kSOjz';
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function verifyEmail() {
+            // URL'deki hash veya query parametrelerini kontrol et
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+
+            // Eğer Supabase token'ı hash içinde gönderdiyse (örn: #access_token=...)
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+
+            try {
+                if (code) {
+                    // PKCE akışı için kodu oturuma çevir
+                    const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
+                    if (error) throw error;
+                } else if (!accessToken && !code) {
+                    throw new Error("Doğrulama kodu bulunamadı.");
+                }
+
+                // Başarılı olursa ekranı değiştir
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('success').style.display = 'block';
+
+                // 3 saniye sonra giriş sayfasına yönlendir
+                setTimeout(() => {
+                    window.location.href = '/register.html'; // Giriş sayfanızın adı
+                }, 3000);
+
+            } catch (err) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error-message').innerText = err.message || "Doğrulama sırasında bir hata oluştu.";
+            }
+        }
+
+        verifyEmail();
+    </script>
+</body>
+</html>

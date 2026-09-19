@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TsuTabi - Hizmet Koşulları</title>
+    
+    <!-- Çerez ve Consent Mode Yönetimi -->
+    <script src="/cookie-banner.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+    
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Ortak CSS Dosyası -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <style>
+        /* --- SAYFAYA ÖZEL İÇERİK STİLLERİ --- */
+        .main-content-wrapper {
+            flex: 1;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2.5rem 1.5rem 4rem 1.5rem;
+        }
+
+        .terms-card {
+            background: var(--card-bg);
+            backdrop-filter: var(--backdrop-blur);
+            border-radius: 1.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            padding: 2.5rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .terms-header {
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        .terms-header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary-anime) 0%, var(--primary-indigo) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .terms-header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .terms-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .terms-section h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .terms-section p {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text-main);
+            text-align: justify;
+        }
+
+        @media (max-width: 768px) {
+            .terms-card { padding: 1.5rem 1rem; }
+            .terms-header h1 { font-size: 1.75rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- app.js üzerinden navbar.html buraya yüklenecek -->
+    <div id="navbar-placeholder" style="width: 100%;"></div>
+
+    <!-- Ana İçerik: Hizmet Koşulları -->
+    <main class="main-content-wrapper">
+        <div class="terms-card">
+            
+            <div class="terms-header">
+                <h1>Hizmet Koşulları</h1>
+                <p>Son Güncelleme: 12 Eylül 2026</p>
+            </div>
+            <p>Lütfen web sitemizi ("Platform") kullanmadan önce işbu Hizmet Koşulları'nı dikkatlice okuyunuz. Platforma üye olarak veya siteyi ziyaret ederek aşağıdaki şartları ve koşulları eksiksiz kabul etmiş sayılarsınız.</p>
+            
+            <div class="terms-section">
+                <h2>1. Taraflar ve Tanımlar</h2>
+                <p>İşletici / Veri Sorumlusu: Sitenin sahibi ve yöneticisi olarak bireysel statüde hareket eden [Ahmet Evleksiz]'dır (Bundan sonra "Platform" veya "Biz" olarak anılacaktır).</p>
+                <p>Kullanıcı: Platforma kayıt olan, Japonca kelime çalışma, okuma, dinleme araçlarını kullanan, günlük yazan veya blog yazısı okuyup yorum yapan gerçek kişidir (Bundan sonra "Kullanıcı" veya "Siz" olarak anılacaktır).</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>2. Hizmetin Kapsamı</h2>
+                <p>Platform; kullanıcılara Japonca kelime öğrenme, okuma ve dinleme etkinlikleriyle pekiştirme yapma, dahili sözlük desteğiyle akışı bozmadan kelime havuzu oluşturma ve günlük aracı vasıtasıyla Japonca cümle kurma pratikleri sunan kişisel gelişim ve eğitim odaklı bir web sitesidir.</p>
+                <p>Kullanıcılar arasında doğrudan bir iletişim veya sosyal ağ etkileşimi bulunmamaktadır ve platformun gelecekte de bu yönde bir özelliği olmayacaktır.</p>
+                <p>Önerilen günlük çalışma periyodu belirtilen sıra ile 15 dakikadır; ancak bu süre tavsiye niteliğindedir.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>3. Kullanıcı Hesapları ve Güvenlık</h2>
+                <p>Platforma kayıt olmak için bir takma ad (nickname) ve geçerli bir e-posta adresi gereklidir. Oturum açma, kayıt olma, veri saklama ve silme işlemleri Supabase altyapısı ve Row Level Security (RLS) güvenlik protokolleri ile korunmaktadır.</p>
+                <p>Hesap güvenliğinizi sağlamak ve şifrenizi korumak tamamen kullanıcının sorumluluğundadır. Hesabınızın yetkisiz kişilerce kullanılması durumunda doğabilecek zararlardan platform sorumlu tutulamaz.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>4. İçerik ve Fikri Mülkiyet Hakları</h2>
+                <p>Platform üzerinde sunulan tüm eğitim materyalleri, blog yazıları, yazılım mimarisi, tasarım ve arayüz unsurları site işleticisine aittir veya yasal lisanslarla kullanılmaktadır. İzinsiz kopyalanamaz, çoğaltılamaz veya ticari amaçla kullanılamaz.</p>
+                <p>Günlük Araçları ve Kullanıcı İçerikleri: Kullanıcıların günlük aracıyla ürettiği metinler ve sisteme bıraktığı blog yorumları, platformun işleyişi ve öğrenme deneyiminin sürekliliği için saklanır.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>5. Hesap Silme ve İçerik Politikası</h2>
+                <p>Kullanıcı dilediği zaman hesabını silme veya platformla ilişiğini kesme hakkına sahiptir.</p>
+                <p>Yorumların Durumu: Kullanıcı hesabını sildiğinde, daha önce yaptığı blog yorumları tercihe bağlı olarak silinir veya anonimleştirilir. Etkileşim akışının bozulmaması ve topluluk/fikir bütünlüğünün korunması amacıyla bu yorumlar tercih edilirse anonimleştirilerek (kullanıcı adı ve e-posta bağı koparılarak) sitede kalmaya devam eder. Kullanıcı, bu sözleşmeyi onaylayarak hesabını kapatsa dahi anonimleşen yorumlarının sitede kalacağını peşinen kabul eder.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>6. Sorumluluk Sınırlaması</h2>
+                <p>Platform, "olduğu gibi" sunulmaktadır. Sitede yer alan Japonca öğrenme araçlarının, çevirilerin veya içeriklerin kesintisiz, hatasız veya %100 kusursuz olduğu taahhüt edilmez.</p>
+                <p>Sistem güncellemeleri, Supabase altyapı kaynaklı kesintiler veya teknik aksaklıklardan dolayı veri kaybı yaşanmaması için azami gayret gösterilse de, olası aksaklıklardan ötürü işletici sorumlu tutulamaz.</p>
+                <p>Sitede ileride gösterilebilecek üçüncü taraf reklamları (örn. Google Adsense) üzerinden yönlendirilen harici web sitelerinin içerik ve gizlilik politikalarından platform sorumlu değildir.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>7. Değişiklikler</h2>
+                <p>İşbu Kullanım Koşulları, gerekli görüldüğü takdirde işletici tarafından güncellenebilir. Güncellemeler sitede yayınlandığı andan itibaren geçerlilik kazanır. Siteden yararlanmaya devam eden kullanıcılar bu değişiklikleri kabul etmiş sayılır.</p>
+                <p>İletişim için: tsutabiapp@gmail.com</p>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- app.js üzerinden footer.html buraya yüklenecek -->
+    <div id="footer-placeholder" style="width: 100%; display: flex; flex-direction: column;"></div>
+
+    <!-- Sayfa bileşenleri yüklendikten sonra ana app.js çalıştırılır -->
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (typeof loadComponents === 'function') await loadComponents();
+            if (typeof initApp === 'function') await initApp();
+        });
+    </script>
+
+    <!-- Ortak app.js Entegrasyonu -->
+    <script src="/app.js"></script>
+</body>
+</html>

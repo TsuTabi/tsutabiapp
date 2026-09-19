@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TsuTabi - Görsel ile Öğrenme</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+    <script src="/cookie-banner.js"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Ortak CSS Dosyası -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .hidden { display: none !important; }
+        
+        .main-content-wrapper {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem 3rem 1rem;
+        }
+        
+        .describe-container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: var(--backdrop-blur);
+            padding: 1.25rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        .describe-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.625rem;
+            border: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            background: var(--nickname-bg);
+            color: var(--text-dark);
+            resize: vertical;
+            font-family: inherit;
+            outline: none;
+        }
+        .describe-textarea:focus {
+            border-color: var(--primary-indigo);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        }
+
+        .question-box {
+            background: var(--nickname-bg);
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            border-radius: 0.875rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.625rem;
+        }
+
+        .answer-feedback-box {
+            margin-top: 0.25rem;
+            padding: 0.75rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.625rem;
+            font-size: 0.75rem;
+            color: var(--text-main);
+        }
+
+        .vocab-item-row {
+            background: var(--nickname-bg);
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        /* Görsel Zoom Alanı Stilleri */
+        .image-zoom-wrapper {
+            width: 100%;
+            height: 320px;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            background: #000000;
+            position: relative;
+            cursor: zoom-in;
+            touch-action: pan-x pan-y pinch-zoom;
+        }
+
+        .image-zoom-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transform-origin: center center;
+            transition: transform 0.1s ease-out;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ortak Navbar Dinamik Olarak Buraya Gelecek -->
+    <div id="navbar-placeholder" style="width: 100%;"></div>
+
+    <!-- Main Container -->
+    <div class="main-content-wrapper">
+        <div class="describe-container">
+
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span id="levelBadge" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.25rem 0.625rem; cursor: default;">Seviye: 1</span>
+                <button id="fetchBtn" onclick="fetchRandomPicture()" class="btn btn-outline">
+                    🔄 Başka Görsel Getir
+                </button>
+            </div>
+
+            <!-- Görsel ve Soruların Birleştirildiği Tek Kart Alanı -->
+            <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div class="image-zoom-wrapper" id="imageZoomContainer">
+                    <img id="pictureElement" src="" alt="Öğrenme Görseli">
+                </div>
+                
+                <div id="questionsContainer" style="display: flex; flex-direction: column; gap: 0.875rem;">
+                    <p style="font-size: 0.75rem; color: var(--text-muted);">Yükleniyor...</p>
+                </div>
+            </div>
+
+            <!-- Kelime Havuzu Alanı -->
+            <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
+                <h2 style="font-weight: 700; font-size: 0.9rem; color: var(--text-dark);">📚 Görsel Kelime Havuzu</h2>
+                <div id="vocabularyContainer" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <p style="font-size: 0.75rem; color: var(--text-muted);">Kelimeler yükleniyor...</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- HIZLI SÖZLÜK PANELİ (Yandan Kayan Drawer) -->
+    <div id="quickDictPanel" class="quick-dict-panel">
+        <div class="quick-dict-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.1rem;">🔍</span>
+                <h3 style="font-weight: 700; font-size: 0.85rem; color: var(--text-dark);">Hızlı Sözlük Arama</h3>
+            </div>
+            <button onclick="toggleQuickDict()" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">✕ Kapat</button>
+        </div>
+        <div class="quick-dict-body">
+            <input type="text" id="dictSearchInput" placeholder="Kelime, anlam veya okunuş ara..." oninput="searchInDictionary(this.value)" class="describe-textarea">
+            <div id="googleTranslateWrapper" class="hidden">
+                <a id="googleTranslateLink" href="#" target="_blank" class="btn btn-outline" style="width: 100%; justify-content: center; font-size: 0.7rem;">
+                    🌐 Google Çeviri'de Ara →
+                </a>
+            </div>
+        </div>
+        <div id="dictResultsContainer" class="quick-dict-results">
+            <p style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding-top: 2rem;">Arama yapmak için yukarıya bir şeyler yazın...</p>
+        </div>
+    </div>
+
+    <!-- Ortak Footer Dinamik Olarak Buraya Gelecek -->
+    <div id="footer-placeholder" style="width: 100%; display: flex; flex-direction: column;"></div>
+
+    <script>
+        let savedWordsMap = {};
+        
+        // Soru akış yönetimi değişkenleri
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let userAnswers = {};
+        let showAnswerStates = {};
+        let isFinished = false;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initDictionaryCache();
+
+            await fetchRandomPicture();
+            if (typeof currentUser !== 'undefined' && currentUser) {
+                await fetchSavedWords();
+            }
+            initImageZoom();
+
+            // Q Harfi Dinleyicisi
+            window.addEventListener('keydown', function(e) {
+                if (e.key === 'q' || e.key === 'Q') {
+                    e.preventDefault(); 
+                    e.stopPropagation();
+                    toggleQuickDict();
+                }
+            }, true);
+
+            // Panel dışına tıklandığında kapatma
+            window.addEventListener('click', function(e) {
+                const panel = document.getElementById('quickDictPanel');
+                const isOpen = panel.classList.contains('active');
+                if (isOpen) {
+                    const isClickInside = panel.contains(e.target) || e.target.closest('button[onclick="toggleQuickDict()"]');
+                    if (!isClickInside) {
+                        toggleQuickDict();
+                    }
+                }
+            });
+        });
+
+        async function initDictionaryCache() {
+            try {
+                if (!sessionStorage.getItem('tsu_full_dictionary')) {
+                    const { data, error } = await supabaseClient.from('dictionary').select('*');
+                    if (!error && data) {
+                        sessionStorage.setItem('tsu_full_dictionary', JSON.stringify(data));
+                    }
+                }
+
+                if (typeof currentUser !== 'undefined' && currentUser && !sessionStorage.getItem('tsu_saved_words')) {
+                    const { data, error } = await supabaseClient
+                        .from('saved_words')
+                        .select('word_id')
+                        .eq('user_id', currentUser.id);
+                    
+                    if (!error && data) {
+                        const savedMap = {};
+                        data.forEach(item => savedMap[item.word_id] = true);
+                        sessionStorage.setItem('tsu_saved_words', JSON.stringify(savedMap));
+                    }
+                }
+            } catch (err) {
+                console.error("Önbellekleme hatası:", err);
+            }
+        }
+
+        function toggleQuickDict() {
+            const panel = document.getElementById('quickDictPanel');
+            const isOpen = panel.classList.contains('active');
+            if (isOpen) {
+                panel.classList.remove('active');
+                document.getElementById('dictSearchInput').value = '';
+                document.getElementById('googleTranslateWrapper').classList.add('hidden');
+                document.getElementById('dictResultsContainer').innerHTML = `<p style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding-top: 2rem;">Arama yapmak için yukarıya bir şeyler yazın...</p>`;
+            } else {
+                panel.classList.add('active');
+                document.getElementById('dictSearchInput').focus();
+            }
+        }
+
+        function searchInDictionary(query) {
+            const trimmedQuery = query.trim().toLowerCase();
+            const googleWrapper = document.getElementById('googleTranslateWrapper');
+            const googleLink = document.getElementById('googleTranslateLink');
+            const resultsContainer = document.getElementById('dictResultsContainer');
+
+            if (trimmedQuery.length > 0) {
+                googleWrapper.classList.remove('hidden');
+                const encoded = encodeURIComponent(trimmedQuery);
+                googleLink.href = `https://translate.google.com/?sl=tr&tl=ja&text=${encoded}&op=translate`;
+            } else {
+                googleWrapper.classList.add('hidden');
+                resultsContainer.innerHTML = `<p style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding-top: 2rem;">Arama yapmak için yukarıya bir şeyler yazın...</p>`;
+                return;
+            }
+
+            const dictData = JSON.parse(sessionStorage.getItem('tsu_full_dictionary') || '[]');
+            const savedMap = JSON.parse(sessionStorage.getItem('tsu_saved_words') || '{}');
+
+            const matches = dictData.filter(item => {
+                const kanji = (item.kanji || '').toLowerCase();
+                const kana = (item.kana || '').toLowerCase();
+                const romaji = (item.romaji || '').toLowerCase();
+                const meaning = (item.meaning || '').toLowerCase();
+
+                return kanji.includes(trimmedQuery) || 
+                       kana.includes(trimmedQuery) || 
+                       romaji.includes(trimmedQuery) || 
+                       meaning.includes(trimmedQuery);
+            });
+
+            matches.sort((a, b) => {
+                const getScore = (item) => {
+                    const k = (item.kanji || '').toLowerCase();
+                    const ka = (item.kana || '').toLowerCase();
+                    const r = (item.romaji || '').toLowerCase();
+                    const m = (item.meaning || '').toLowerCase();
+
+                    if (k === trimmedQuery || ka === trimmedQuery || r === trimmedQuery || m === trimmedQuery) return 1;
+                    if (k.startsWith(trimmedQuery) || ka.startsWith(trimmedQuery) || r.startsWith(trimmedQuery) || m.startsWith(trimmedQuery)) return 2;
+                    return 3;
+                };
+                return getScore(a) - getScore(b);
+            });
+
+            const limitedMatches = matches.slice(0, 10);
+            resultsContainer.innerHTML = '';
+
+            if (limitedMatches.length === 0) {
+                resultsContainer.innerHTML = `<p style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding-top: 2rem;">Sonuç bulunamadı.</p>`;
+                return;
+            }
+
+            limitedMatches.forEach(item => {
+                const kanji = item.kanji || '';
+                const kana = item.kana || '';
+                const romaji = item.romaji || '';
+                const meaning = item.meaning || '';
+                const pos = item.pos || 'Kelime';
+                const isSaved = savedMap[item.word_id] === true;
+
+                resultsContainer.innerHTML += `
+                    <div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.75rem;">
+                        <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                            <div>
+                                <span style="font-weight: 700; font-size: 0.9rem; color: var(--primary-indigo);">${escapeHtml(kanji)}</span>
+                                <span style="color: var(--text-muted); margin-left: 0.25rem;">${kana ? `(${escapeHtml(kana)})` : ''}</span>
+                                <span style="color: var(--text-muted); font-size: 0.7rem; margin-left: 0.25rem;">${romaji ? `[${escapeHtml(romaji)}]` : ''}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="btn btn-outline" style="font-size: 0.65rem; padding: 0.15rem 0.4rem; cursor: default;">${escapeHtml(pos)}</span>
+                                <button onclick='saveWord(${JSON.stringify(item.word_id)}, this)' 
+                                    class="${isSaved ? 'btn' : 'btn btn-anime'}"
+                                    style="${isSaved ? 'background: #15803d; color: #ffffff; cursor: default;' : ''}"
+                                    ${isSaved ? 'disabled' : ''}>
+                                    ${isSaved ? '✓ Ekli' : '＋ Ekle'}
+                                </button>
+                            </div>
+                        </div>
+                        <div style="color: var(--text-dark); border-top: 1px solid var(--border-color); padding-top: 0.35rem;">
+                            <span style="color: var(--text-muted);">Anlam:</span> ${escapeHtml(meaning)}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function initImageZoom() {
+            const container = document.getElementById('imageZoomContainer');
+            const img = document.getElementById('pictureElement');
+
+            let scale = 1;
+
+            container.addEventListener('mousemove', (e) => {
+                const rect = container.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                
+                scale = 2.2;
+                img.style.transformOrigin = `${x}% ${y}%`;
+                img.style.transform = `scale(${scale})`;
+            });
+
+            container.addEventListener('mouseleave', () => {
+                scale = 1;
+                img.style.transformOrigin = `center center`;
+                img.style.transform = `scale(1)`;
+            });
+
+            container.addEventListener('dblclick', () => {
+                if (scale === 1) {
+                    scale = 2.5;
+                    img.style.transform = `scale(${scale})`;
+                } else {
+                    scale = 1;
+                    img.style.transform = `scale(1)`;
+                }
+            });
+        }
+
+        async function fetchSavedWords() {
+            if (typeof currentUser === 'undefined' || !currentUser) return;
+            const { data, error } = await supabaseClient
+                .from('saved_words')
+                .select('*')
+                .eq('user_id', currentUser.id);
+
+            if (!error && data) {
+                savedWordsMap = {};
+                data.forEach(item => {
+                    savedWordsMap[item.word_id] = true;
+                });
+            }
+        }
+
+        async function fetchRandomPicture() {
+            const btn = document.getElementById('fetchBtn');
+            btn.disabled = true;
+            btn.innerText = "Görsel yükleniyor...";
+
+            currentQuestions = [];
+            currentQuestionIndex = 0;
+            userAnswers = {};
+            showAnswerStates = {};
+            isFinished = false;
+
+            try {
+                const { data, error } = await supabaseClient.from('pictures').select('*');
+                if (error || !data || data.length === 0) {
+                    alert("Görsel bulunamadı!");
+                    btn.disabled = false;
+                    btn.innerText = "🔄 Başka Görsel Getir";
+                    return;
+                }
+
+                const randomIndex = Math.floor(Math.random() * data.length);
+                const currentPicture = data[randomIndex];
+
+                const publicUrl = supabaseClient.storage.from('pictures').getPublicUrl(currentPicture.file_name).data.publicUrl;
+                document.getElementById('pictureElement').src = publicUrl;
+                document.getElementById('levelBadge').innerText = `Seviye: ${currentPicture.level || 1}`;
+
+                currentQuestions = currentPicture.questions || [];
+                renderCurrentQuestion();
+                await fetchVocabularyDetails(currentPicture.vocabulary);
+
+            } catch (err) {
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "🔄 Başka Görsel Getir";
+            }
+        }
+
+        function renderCurrentQuestion() {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+
+            if (!currentQuestions || currentQuestions.length === 0) {
+                container.innerHTML = `<p style="font-size: 0.75rem; color: var(--text-muted);">Bu görsel için soru eklenmemiş.</p>`;
+                return;
+            }
+
+            if (isFinished) {
+                container.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 1.5rem; text-align: center;">
+                        <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--primary-indigo);">🎉 Tebrikler! Tüm soruları tamamladınız.</h3>
+                        <p style="font-size: 0.75rem; color: var(--text-muted);">Bu görseldeki alıştırmaları başarıyla bitirdiniz.</p>
+                        <button onclick="fetchRandomPicture()" class="btn btn-anime" style="padding: 0.5rem 1rem; font-size: 0.8rem;">🔄 Yenisini Getir</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const item = currentQuestions[currentQuestionIndex];
+            const currentAnswer = userAnswers[currentQuestionIndex] || '';
+            const isAnswerShown = showAnswerStates[currentQuestionIndex] || false;
+            const total = currentQuestions.length;
+
+            container.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted);">
+                    <span>Soru ${currentQuestionIndex + 1} / ${total}</span>
+                    <button onclick="toggleQuickDict()" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.25rem 0.625rem; display: flex; align-items: center; gap: 0.3rem; cursor: pointer;">
+                        <span>🔍</span>
+                        <span>Hızlı Sözlük (Q)</span>
+                    </button>
+                </div>
+                <div class="question-box" style="margin-top: 0.25rem;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-dark);">${currentQuestionIndex + 1}. ${escapeHtml(item.question)}</label>
+                    <textarea rows="3" placeholder="Cevabınızı buraya yazın..." class="describe-textarea" oninput="saveCurrentAnswer(this.value)">${escapeHtml(currentAnswer)}</textarea>
+                    
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="prevQuestion()" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.25rem 0.5rem; ${currentQuestionIndex === 0 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">← Önceki</button>
+                            <button onclick="nextQuestion()" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">${currentQuestionIndex === total - 1 ? 'Bitir →' : 'Sonraki →'}</button>
+                        </div>
+                        <button onclick="toggleAnswerState()" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">${isAnswerShown ? '🙈 Örnek Cevabı Gizle' : '💡 Örnek Cevabı Göster'}</button>
+                    </div>
+
+                    <div class="${isAnswerShown ? '' : 'hidden'} answer-feedback-box">
+                        <strong style="color: var(--primary-indigo);">Örnek Cevap:</strong> ${escapeHtml(item.answer)}
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveCurrentAnswer(val) {
+            userAnswers[currentQuestionIndex] = val;
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderCurrentQuestion();
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < currentQuestions.length - 1) {
+                currentQuestionIndex++;
+                renderCurrentQuestion();
+            } else {
+                isFinished = true;
+                renderCurrentQuestion();
+            }
+        }
+
+        function toggleAnswerState() {
+            showAnswerStates[currentQuestionIndex] = !showAnswerStates[currentQuestionIndex];
+            renderCurrentQuestion();
+        }
+
+        async function fetchVocabularyDetails(wordIds) {
+            const container = document.getElementById('vocabularyContainer');
+            container.innerHTML = '';
+
+            if (!wordIds || wordIds.length === 0) {
+                container.innerHTML = `<p style="font-size: 0.75rem; color: var(--text-muted);">Bu görselle ilişkili kelime bulunmuyor.</p>`;
+                return;
+            }
+
+            const { data: words, error } = await supabaseClient
+                .from('dictionary')
+                .select('*')
+                .in('word_id', wordIds);
+
+            if (error || !words || words.length === 0) {
+                container.innerHTML = `<p style="font-size: 0.75rem; color: var(--text-muted);">Kelimeler yüklenemedi.</p>`;
+                return;
+            }
+
+            if (typeof currentUser !== 'undefined' && currentUser) {
+                await fetchSavedWords();
+            }
+
+            words.forEach(word => {
+                const isSaved = savedWordsMap[word.word_id];
+                container.innerHTML += `
+                    <div class="vocab-item-row" data-word-id="${escapeHtml(word.word_id)}">
+                        <div>
+                            <span style="font-weight: 700; font-size: 0.95rem; color: var(--primary-indigo);">${escapeHtml(word.kanji || '')}</span>
+                            <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 0.25rem;">(${escapeHtml(word.kana || '')})</span>
+                            <div style="color: var(--text-dark); font-size: 0.75rem; margin-top: 0.15rem;">${escapeHtml(word.meaning || '')}</div>
+                        </div>
+                        <div>
+                            ${isSaved 
+                                ? `<button class="btn" style="background: #15803d; color: #ffffff; cursor: default;" disabled>✓ Ekli</button>`
+                                : `<button onclick="saveWord('${escapeHtml(word.word_id)}', this)" class="btn btn-anime">＋ Ekle</button>`
+                            }
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function saveWord(wordId, btnElement) {
+            if (!wordId) return;
+
+            if (typeof currentUser === 'undefined' || !currentUser) {
+                if (btnElement) {
+                    const originalHTML = btnElement.innerHTML;
+                    btnElement.innerHTML = "✨ TsuTabi özelliğini keşfettin";
+                    btnElement.disabled = true;
+                    btnElement.style.background = "#ffe4e6";
+                    btnElement.style.color = "#f43f5e";
+                    btnElement.style.borderColor = "#fda4af";
+                    setTimeout(() => {
+                        btnElement.innerHTML = originalHTML;
+                        btnElement.disabled = false;
+                        btnElement.style.background = "";
+                        btnElement.style.color = "";
+                        btnElement.style.borderColor = "";
+                    }, 3000);
+                }
+                return;
+            }
+
+            if (btnElement) {
+                btnElement.innerText = "Yükleniyor...";
+                btnElement.disabled = true;
+            }
+
+            const { error } = await supabaseClient.from('saved_words').insert([
+                { user_id: currentUser.id, word_id: wordId }
+            ]);
+
+            if (error) {
+                console.error("Kelime kaydedilirken hata: " + error.message);
+                if (btnElement) {
+                    btnElement.innerText = "Hata!";
+                    setTimeout(() => {
+                        btnElement.innerText = "＋ Ekle";
+                        btnElement.disabled = false;
+                    }, 2000);
+                }
+                return;
+            }
+
+            savedWordsMap[wordId] = true;
+
+            const savedMap = JSON.parse(sessionStorage.getItem('tsu_saved_words') || '{}');
+            savedMap[wordId] = true;
+            sessionStorage.setItem('tsu_saved_words', JSON.stringify(savedMap));
+            
+            if (btnElement) {
+                btnElement.innerText = "✓ Ekli";
+                btnElement.style.background = "#15803d";
+                btnElement.style.color = "#ffffff";
+                btnElement.disabled = true;
+            }
+        }
+
+        function escapeHtml(str) {
+            return str ? str.toString().replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t])) : '';
+        }
+        alert("Bu sayfa yapım aşamasındadır. Veriler temsilidir!")
+    </script>
+    
+    <!-- Ortak app.js Entegrasyonu -->
+    <script src="/app.js"></script>
+</body>
+</html>

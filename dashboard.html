@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TsuTabi - Çalışma Alanın</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+    <script src="/cookie-banner.js"></script>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Ortak CSS Dosyası (Navbar, Footer, Tema Değişkenleri ve Genel Stiller) -->
+    <link rel="stylesheet" href="/style.css">
+    <!-- Open Graph / Sosyal Medya Paylaşım Etiketleri -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tsutabi.com/"> <!-- Sitenizin güncel linki -->
+<meta property="og:title" content="TsuTabi - Başka Bir Öğrenim Deneyimi">
+<meta property="og:description" content="Dil öğrenimini hızlandırmak, sorularla pekiştirmek ve hemen üretimle kalıcılığı yakalamak için harika bir platform.">
+<meta property="og:image" content="https://tsutabi.com/og-image.png"> <!-- Paylaşıldığında görünecek görselin tam URL'si -->
+
+<!-- Twitter / X İçin Ek Etiketler -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://tsutabi.com/">
+<meta name="twitter:title" content="TsuTabi - Kelime Öğrenme Yolculuğu">
+<meta property="twitter:description" content="Dil öğrenimini hızlandırmak, sorularla pekiştirmek ve hemen üretimle kalıcılığı yakalamak için harika bir platform.">
+<meta name="twitter:image" content="https://tsutabi.com/og-image.png">
+
+ <style>
+        /* --- DASHBOARD SAYFASINA ÖZEL STİLLER --- */
+        .dashboard-grid {
+            width: 100%;
+            max-width: 880px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            padding: 2rem 1.25rem;
+            flex: 1;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 1024px) {
+            .dashboard-grid { 
+                display: grid;
+                grid-template-columns: repeat(12, 1fr);
+                align-items: start;
+            }
+            .col-span-left { grid-column: span 7; grid-row: 1; }
+            .dashboard-tools-card { grid-column: span 7; grid-row: 2; }
+            .col-span-right { grid-column: span 5; grid-row: 1 / span 2; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: var(--backdrop-blur);
+            padding: 1.25rem;
+            border-radius: 1.25rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.03);
+            position: relative;
+        }
+
+        .activity-stack { display: flex; flex-direction: column; gap: 0.625rem; }
+
+        .activity-box {
+            background: var(--nickname-bg);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid #64748b;
+            padding: 0.75rem 0.875rem;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-decoration: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .box-lesson { border-left-color: #ef4444; }
+        .box-master { border-left-color: #6366f1; }
+        .box-journal { border-left-color: #10b981; }
+        .box-description { border-left-color: #d946ef; }
+
+        /* Canlı / Tamamlanmış Kutu Stili (Tik yok, şık yeşil çerçeve ve arka plan) */
+        .activity-box.active {
+            border-color: #10b981 !important;
+            border-left-color: #10b981 !important;
+            background: rgba(16, 185, 129, 0.06);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.12);
+        }
+
+        .activity-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+            border-color: #94a3b8;
+        }
+
+        /* --- 3'LÜ KARE ARAÇLARIZ STİLLERİ --- */
+        .dashboard-tools-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.625rem;
+        }
+
+        .tool-square-box {
+            background: var(--nickname-bg);
+            border: 1px solid var(--border-color);
+            padding: 1rem 0.5rem;
+            border-radius: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            cursor: pointer;
+            gap: 0.4rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            text-align: center;
+        }
+
+        .tool-square-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+            border-color: #94a3b8;
+            background: var(--card-bg);
+        }
+
+        .hover-go-btn { display: none; }
+        @media (min-width: 1024px) {
+            .hover-go-btn {
+                display: block; position: absolute; right: -60px; top: 50%;
+                transform: translateY(-50%); background: var(--text-dark); color: #fff;
+                padding: 0.25rem 0.6rem; border-radius: 0.4rem; font-size: 0.65rem; font-weight: 700;
+                transition: right 0.25s ease-in-out; box-shadow: -4px 0 10px rgba(0,0,0,0.1);
+            }
+            .activity-box:hover .hover-go-btn { right: 10px; }
+        }
+
+        .badge { font-size: 0.625rem; padding: 0.1rem 0.4rem; border-radius: 9999px; font-weight: 700; }
+        .badge-anime { background: #fce7f3; color: var(--primary-anime); }
+
+        .results-scroll { max-height: calc(100vh - 15rem); overflow-y: auto; padding-right: 0.2rem; }
+
+        .spinner-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 0;
+        }
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-anime);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .text-xs { font-size: 0.7rem; }
+        .text-sm { font-size: 0.8rem; }
+        .font-bold { font-weight: 700; }
+        .text-muted { color: var(--text-muted); }
+        .text-dark { color: var(--text-dark); }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 0.625rem; }
+        .space-y-2 > * + * { margin-top: 0.375rem; }
+    </style>
+</head>
+<body>
+
+    <!-- app.js üzerinden navbar.html buraya yüklenecek -->
+    <div id="navbar-placeholder" style="width: 100%;"></div>
+
+    <div class="dashboard-grid">
+        <!-- SOL SÜTUN 1: Günlük Etkinlikler -->
+        <div class="col-span-left flex flex-col gap-3">
+            <div class="card">
+                <div class="font-bold text-sm text-dark" style="margin-bottom: 0.625rem;">Günlük Etkinlikler</div>
+                <div class="activity-stack">
+                    <a href="/flashcards" class="activity-box box-master" id="box-flashcards">
+                        <div class="flex items-center gap-3" style="width: 100%;">
+                            <span style="font-size: 1.1rem;">⭐</span>
+                            <div style="width: 100%;">
+                                <span class="font-bold text-xs text-dark block">Öğren</span>
+                                <div style="border-top: 1px solid var(--border-color); margin: 2px 0; width: 100%;"></div>
+                                <span class="text-xs text-muted block" style="font-size: 0.6rem;">Hızlıca göz atarak aşina olmaya çalış.</span>
+                            </div>
+                        </div>
+                        <div class="hover-go-btn">Git ➔</div>
+                    </a>
+
+                    <a href="/quiz" class="activity-box box-description" id="box-quiz">
+                        <div class="flex items-center gap-3" style="width: 100%;">
+                            <span style="font-size: 1.1rem;">🎨</span>
+                            <div style="width: 100%;">
+                                <span class="font-bold text-xs text-dark block">Calış</span>
+                                <div style="border-top: 1px solid var(--border-color); margin: 2px 0; width: 100%;"></div>
+                                <span class="text-xs text-muted block" style="font-size: 0.6rem;">Farklı sorularla öğrendiklerini pekiştir</span>
+                            </div>
+                        </div>
+                        <div class="hover-go-btn">Git ➔</div>
+                    </a>
+
+                    <a href="/diary" class="activity-box box-journal" id="box-diary">
+                        <div class="flex items-center gap-3" style="width: 100%;">
+                            <span style="font-size: 1.1rem;">✍️</span>
+                            <div style="width: 100%;">
+                                <span class="font-bold text-xs text-dark block">Anlat</span>
+                                <div style="border-top: 1px solid var(--border-color); margin: 2px 0; width: 100%;"></div>
+                                <span class="text-xs text-muted block" style="font-size: 0.6rem;">Üreterek öğrenmesi en kalıcı! 4-5 cümle ile gününü anlatmayı dene</span>
+                            </div>
+                        </div>
+                        <div class="hover-go-btn">Git ➔</div>
+                    </a>
+
+                    <a href="/blog" class="activity-box box-lesson" id="box-blog">
+                        <div class="flex items-center gap-3" style="width: 100%;">
+                            <span style="font-size: 1.1rem;">📖</span>
+                            <div style="width: 100%;">
+                                <span class="font-bold text-xs text-dark block">Biraz Karıştır</span>
+                                <div style="border-top: 1px solid var(--border-color); margin: 2px 0; width: 100%;"></div>
+                                <span class="text-xs text-muted block" style="font-size: 0.6rem;">Yeni şeyler öğren ve hemen burada kullanmaya başla</span>
+                            </div>
+                        </div>
+                        <div class="hover-go-btn">Git ➔</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- SAĞ SÜTUN: Günün Kelimeleri -->
+        <div class="col-span-right card">
+            <div class="flex flex-wrap justify-between items-center gap-2" style="margin-bottom: 0.8rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border-color);">
+                <div class="flex items-center gap-1.5">
+                    <h2 class="font-bold text-sm text-dark">Günün Kelimeleri  </h2>
+                    <span id="savedCountBadge" class="badge badge-anime">0</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <a href="/dictionary" class="btn btn-outline" style="padding: 0.3rem 0.5rem; font-size: 0.7rem;">📖 Sözlük</a>
+                </div>
+            </div>
+
+            <div id="savedWordsContainer" class="space-y-2 results-scroll"></div>
+        </div>
+
+        <!-- SOL SÜTUN 2: Yeni 3'lü Kare Araçlar Kutusu (Masaüstünde sol altta, mobilde en altta yer alır) -->
+        <div class="card dashboard-tools-card">
+            <div class="font-bold text-sm text-dark" style="margin-bottom: 0.625rem;">Araçlar</div>
+            <div class="dashboard-tools-grid">
+                <a href="/describe" class="tool-square-box">
+                    <span style="font-size: 1.4rem;">🏞️</span>
+                    <span class="font-bold text-xs text-dark">Manzara</span>
+                </a>
+                <a href="/market" class="tool-square-box">
+                    <span style="font-size: 1.4rem;">🛒</span>
+                    <span class="font-bold text-xs text-dark">Market</span>
+                </a>
+                <div style="border: 1px dashed var(--border-color); border-radius: 0.75rem; opacity: 0.4;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- app.js üzerinden footer.html buraya yüklenecek -->
+    <div id="footer-placeholder" style="width: 100%; display: flex; flex-direction: column;"></div>
+
+    <!--  Özel Mantık Scripti -->
+    <script>
+        let dailyVocabularyList = [];
+        let allDictionaryWords = [];
+
+        async function initDashboard() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = '/register';
+                return;
+            }
+            currentUser = session.user;
+            
+            const container = document.getElementById('savedWordsContainer');
+            if (container) {
+                container.innerHTML = `
+                    <div class="spinner-container">
+                        <div class="spinner"></div>
+                    </div>
+                `;
+            }
+
+            // 1. Önce veritabanındaki günlük oturum ve 15 kelime kontrolünü/güncellemesini tetikle
+            try {
+                await supabaseClient.rpc('check_and_update_daily_session', { 
+                    p_user_id: currentUser.id 
+                });
+            } catch (err) {
+                console.error('Günlük oturum tetiklenirken hata:', err);
+            }
+
+            // 2. Kutu durumlarını (Canlı / Tamamlandı) kontrol et ve uygula
+            await checkActivityStatuses();
+
+            await fetchDictionaryData();
+            await loadDailyVocabulary();
+        }
+
+
+        // Kutu Canlılık Kontrolleri
+        async function checkActivityStatuses() {
+            if (!currentUser) return;
+            const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+
+            // A. daily_sessions tablosu kontrolü (Öğren ve Çalış)
+            try {
+                const { data: sessionData } = await supabaseClient
+                    .from('daily_sessions')
+                    .select('flashcard_completed, quiz_completed')
+                    .eq('user_id', currentUser.id)
+                    .maybeSingle();
+
+                if (sessionData) {
+                    if (sessionData.flashcard_completed) {
+                        document.getElementById('box-flashcards').classList.add('active');
+                    }
+                    if (sessionData.quiz_completed) {
+                        document.getElementById('box-quiz').classList.add('active');
+                    }
+                }
+            } catch (err) {
+                console.error("Daily sessions durumu alınamadı:", err);
+            }
+
+            // B. diary tablosu kontrolü (Anlat)
+            try {
+                const { data: diaryData } = await supabaseClient
+                    .from('diary')
+                    .select('created_at')
+                    .eq('user_id', currentUser.id);
+
+                if (diaryData && diaryData.length > 0) {
+                    const hasDiaryToday = diaryData.some(item => {
+                        if (!item.created_at) return false;
+                        const itemDate = item.created_at.split('T')[0];
+                        return itemDate === todayStr;
+                    });
+                    if (hasDiaryToday) {
+                        document.getElementById('box-diary').classList.add('active');
+                    }
+                }
+            } catch (err) {
+                console.error("Diary durumu alınamadı:", err);
+            }
+
+            // C. LocalStorage kontrolü (Biraz Karıştır / Blog)
+            const blogStorageKey = `blog_clicked_${currentUser.id}_${todayStr}`;
+            const blogBox = document.getElementById('box-blog');
+
+            if (localStorage.getItem(blogStorageKey) === 'true') {
+                blogBox.classList.add('active');
+            }
+
+            blogBox.addEventListener('click', () => {
+                localStorage.setItem(blogStorageKey, 'true');
+            });
+        }
+
+        async function fetchDictionaryData() {
+            const { data, error } = await supabaseClient.from('dictionary').select('*');
+            if (!error && data) {
+                allDictionaryWords = data;
+            }
+        }
+
+        async function loadDailyVocabulary() {
+            const container = document.getElementById('savedWordsContainer');
+            const badge = document.getElementById('savedCountBadge');
+
+            try {
+                if (!currentUser) return;
+
+                const todayStr = new Date().toLocaleDateString('en-CA');
+
+                const { data: sessionData, error: sessionError } = await supabaseClient
+                    .from('daily_sessions')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .single();
+
+                const { count: userWordCount } = await supabaseClient
+                    .from('saved_words')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', currentUser.id);
+
+                if (!userWordCount || userWordCount === 0) {
+                    if (badge) badge.innerText = '0';
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 2rem 1rem;">
+                            <p class="text-dark font-bold text-xs" style="margin-bottom: 0.4rem; font-size: 0.8rem;">Henüz Kelimen Yok! 🌸</p>
+                            <p class="text-muted text-xs" style="margin-bottom: 1rem;">Çalışmaya başlamak için sözlükten kendine kelime ekle veya paket seç.</p>
+                            <a href="/dictionary" class="btn btn-anime" style="display: inline-block; padding: 0.5rem 1rem; font-size: 0.75rem; text-decoration: none; border-radius: 0.5rem;">Sözlüğe Git & Kelime Ekle</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (sessionError || !sessionData || sessionData.date !== todayStr || !sessionData.vocabulary || sessionData.vocabulary.length === 0) {
+                    if (badge) badge.innerText = '0';
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 2.5rem 1rem;">
+                            <p class="text-dark font-bold text-xs" style="margin-bottom: 0.4rem; font-size: 0.8rem;">Programınız hazırlanظر...</p>
+                            <p class="text-muted text-xs" style="margin-bottom: 1rem;">Bugünkü çalışma havuzunuz oluşturuluyor, lütfen bekleyin.</p>
+                            <div class="spinner-container">
+                                <div class="spinner"></div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const wordIds = sessionData.vocabulary; 
+                if (badge) badge.innerText = wordIds.length;
+
+                dailyVocabularyList = wordIds.map(id => {
+                    const dictItem = allDictionaryWords.find(w => w.word_id === id || w.id === id) || {};
+                    return {
+                        word_id: id,
+                        kanji: dictItem.kanji || '',
+                        romaji: dictItem.romaji || '',
+                        meaning: dictItem.meaning || ''
+                    };
+                });
+
+                renderDailyList();
+
+            } catch (error) {
+                console.error("Günlük kelimeleri yükleme hatası:", error);
+                container.innerHTML = `<p class="text-muted text-xs text-center" style="padding: 1.5rem 0;">Veriler yüklenirken bir hata oluştu.</p>`;
+            }
+        }
+
+        function renderDailyList() {
+            const container = document.getElementById('savedWordsContainer');
+            if (!container) return;
+
+            if (dailyVocabularyList.length === 0) {
+                container.innerHTML = `<p class="text-muted text-xs text-center" style="padding: 1.5rem 0;">Bugün için kelime bulunamadı.</p>`;
+                return;
+            }
+
+            let htmlContent = '';
+            for (let item of dailyVocabularyList) {
+                htmlContent += `
+                    <div style="background: var(--nickname-bg); border: 1px solid var(--border-color); padding: 0.5rem 0.75rem; border-radius: 0.625rem; margin-bottom: 0.375rem;" class="flex items-center justify-content: space-between gap-2 text-xs" data-word-id="${escapeHtml(item.word_id)}">
+                        <div class="flex items-center gap-2" style="overflow: hidden;">
+                            <div style="overflow: hidden;">
+                                <div class="font-bold text-dark text-xs"> ${escapeHtml(item.kanji)} <span style="font-size: 0.65rem; color: var(--text-muted);">(${escapeHtml(item.romaji)})</span></div>
+                                <div class="text-muted" style="margin-top: 0.1rem; word-break: break-word; font-size: 0.65rem;">${escapeHtml(item.meaning)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = htmlContent;
+        }
+
+        function escapeHtml(str) {
+            return str ? str.toString().replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t])) : '';
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await loadComponents(); 
+            await initApp();        
+            await initDashboard();  
+        });
+    </script>
+    <!-- Ortak app.js Entegrasyonu -->
+    <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TsuTabi - Gizlilik Politikası</title>
+    
+    <!-- Çerez ve Consent Mode Yönetimi -->
+    <script src="/cookie-banner.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+    
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Ortak CSS Dosyası (Navbar, Footer, Tema Değişkenleri ve Genel Stiller) -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <style>
+        /* --- SAYFAYA ÖZEL EK STİLLER --- */
+        .main-content-wrapper {
+            flex: 1;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2.5rem 1.5rem 4rem 1.5rem;
+        }
+
+        .terms-card {
+            background: var(--card-bg);
+            backdrop-filter: var(--backdrop-blur);
+            border-radius: 1.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            padding: 2.5rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .terms-header {
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        .terms-header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary-anime) 0%, var(--primary-indigo) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .terms-header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .terms-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .terms-section h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .terms-section p {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text-main);
+            text-align: justify;
+        }
+
+        @media (max-width: 768px) {
+            .terms-card { padding: 1.5rem 1rem; }
+            .terms-header h1 { font-size: 1.75rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- app.js üzerinden navbar.html buraya yüklenecek -->
+    <div id="navbar-placeholder" style="width: 100%;"></div>
+
+    <!-- Ana İçerik: Gizlilik Politikası -->
+    <div class="main-content-wrapper">
+        <div class="terms-card">
+            
+            <div class="terms-header">
+                <h1>Gizlilik Politikası</h1>
+                <p>Son Güncelleme: 12 Eylül 2026</p>
+            </div>
+
+            <p>İşbu Gizlilik Politikası, Japonca kelime çalışma, okuma, dinleme ve günlük yazma odaklı web sitemizi ("Platform") ziyaret eden veya kullanan kişilerin verilerinin nasıl toplandığını, işlendiğini, saklandığını ve korunduğunu açıklamak amacıyla hazırlanmıştır. Platformumuzu kullanarak, bu politikalarda belirtilen veri işleme faaliyetlerini kabul etmiş olursunuz.</p>
+            
+            <div class="terms-section">
+                <h2>1. Veri Sorumlusunun Kimliği</h2>
+                <p>Platformun sahibi ve veri sorumlusu, bireysel statüde hareket eden Ahmet Evleksiz'dir. Verilerinizle ilgili her türlü soru ve talebiniz için tsutabiapp@gmail.com adresi üzerinden bizimle iletişime geçebilirsiniz.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>2. Toplanan Kişisel Veriler ve Amaçları</h2>
+                <p>Platformumuzda sunduğumuz hizmetleri sağlamak ve deneyiminizi kişiselleştirmek amacıyla sınırlı türde veri topluyoruz:</p>
+                <p>Kayıt ve Hesap Bilgileri: Platforma üye olurken oluşturduğunuz takma ad (nickname) ve e-posta adresi. Bu veriler oturum açma, hesap güvenliği, şifre sıfırlama ve ilerleme takibi için zorunludur.</p>
+                <p>Çalışma ve İlerleme Verileri: Japonca kelime havuzunuz, günlük araçları ile kurduğunuz cümleler ve çalışma istatistikleriniz.</p>
+                <p>Blog Yorumları: Blog yazılarına yaptığınız yorum içerikleri.</p>
+                <p>Teknik ve Trafik Verileri: Sitenin güvenliğini sağlamak ve standart internet trafiğini yönetmek amacıyla tarayıcı bilgileri ve IP adresleri.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>3. Verilerin Saklanması ve Altyapı Güvenliği</h2>
+                <p>Toplanan tüm kişisel verileriniz (oturum açma bilgileri, günlükler, kelime havuzları ve yorumlar), güvenli bulut veritabanı altyapısı sunucularını kullanan Supabase üzerinde şifrelenmiş olarak saklanır.</p>
+                <p>Veri güvenliğinizi en üst düzeyde tutmak amacıyla Row Level Security (RLS) protokolleri uygulanmaktadır. Bu sayede verilerinize yalnızca size ait yetkilendirilmiş oturum üzerinden erişilebilir; başka kullanıcıların verilerinize erişmesi teknik olarak engellenmiştir.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>4. Üçüncü Taraf Hizmetleri ve Çerezler</h2>
+                <p>Reklamlar: Sitemizde gelecekte veya halihazırda Google Adsense reklamları gösterilebilir. Google, kullanıcıya ilgi alanına göre reklam sunabilmek ve site trafiğini analiz etmek için çerezler (cookies) ve web işaretçileri kullanabilir. Google'ın çerez politikaları ve gizliliği hakkında detaylı bilgi için Google'ın resmi Gizlilik ve Şartlar sayfasını inceleyebilirsiniz.</p>
+                <p>Kullanıcılar Arası Etkileşim Yoktur: Platformumuzda kullanıcıların birbiriyle doğrudan etkileşime gireceği bir sosyal ağ altyapısı bulunmadığından, verileriniz hiçbir suretle diğer üyelerle paylaşılmaz.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>5. Hesap Silme ve İçerik Politikası</h2>
+                <p>Kullanıcı dilediği zaman hesabını silme veya platformla ilişiğini kesme hakkına sahiptir.</p>
+                <p>Hesabınızı sildiğinizde kişisel oturum verileriniz sistemden kaldırılır. Ancak tercih edersiniz daha önce yaptığınız blog yorumları, topluluk akışının ve fikir bütünlüğünün bozulmaması amacıyla silinmez; bunun yerine anonimleştirilerek (takma ad ve e-posta bağı tamamen koparılarak) sitede kalmaya devam eder.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>6. Çocukların Gizliliği</h2>
+                <p>Platformumuz genel kullanıma yöneliktir ve bilinçli olarak 18 yaş altı bireylerden kişisel veri talep edilmez.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>7. Gizlilik Politikasındaki Değişiklikler</h2>
+                <p>İşbu Gizlilik Politikası, teknolojik gelişmeler veya yasal zorunluluklar doğrultusunda güncellenebilir. Yapılan değişiklikler sitede yayınlandığı andan itibaren yürürlüğe girer.</p>
+                <p>İletişim ve Veri Talepleri İçin: tsutabiapp@gmail.com</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- app.js üzerinden footer.html buraya yüklenecek -->
+    <div id="footer-placeholder" style="width: 100%; display: flex; flex-direction: column;"></div>
+
+    <!-- Sayfa bileşenleri yüklendikten sonra ana app.js çalıştırılır -->
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (typeof loadComponents === 'function') await loadComponents();
+            if (typeof initApp === 'function') await initApp();
+        });
+    </script>
+    
+    <!-- Ortak app.js Entegrasyonu -->
+    <script src="/app.js"></script>
+</body>
+</html>

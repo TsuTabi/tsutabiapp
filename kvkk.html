@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TsuTabi - KVKK Aydınlatma Metni</title>
+    
+    <!-- Çerez ve Consent Mode Yönetimi -->
+    <script src="/cookie-banner.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+    
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Ortak CSS Dosyası (Navbar, Footer, Tema Değişkenleri ve Genel Stiller) -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <style>
+        /* --- SAYFAYA ÖZEL EK STİLLER --- */
+        .main-content-wrapper {
+            flex: 1;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2.5rem 1.5rem 4rem 1.5rem;
+        }
+
+        .terms-card {
+            background: var(--card-bg);
+            backdrop-filter: var(--backdrop-blur);
+            border-radius: 1.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            padding: 2.5rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .terms-header {
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        .terms-header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary-anime) 0%, var(--primary-indigo) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .terms-header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .terms-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .terms-section h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .terms-section p {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text-main);
+            text-align: justify;
+        }
+
+        @media (max-width: 768px) {
+            .terms-card { padding: 1.5rem 1rem; }
+            .terms-header h1 { font-size: 1.75rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- app.js üzerinden navbar.html buraya yüklenecek -->
+    <div id="navbar-placeholder" style="width: 100%;"></div>
+
+    <!-- Ana İçerik: KVKK Aydınlatma Metni -->
+    <div class="main-content-wrapper">
+        <div class="terms-card">
+            
+            <div class="terms-header">
+                <h1>KVKK Aydınlatma Metni</h1>
+                <p>Son Güncelleme: 12 Eylül 2026</p>
+            </div>
+            <p>İşbu Kişisel Verilerin Korunması Kanunu (“KVKK”) Aydınlatma Metni, 6698 sayılı Kişisel Verilerin Korunması Kanunu’nun 10. maddesi gereğince, Japonca kelime çalışma ve blog platformumuz ("Platform") tarafından işlenen kişisel verileriniz hakkında sizi bilgilendirmek amacıyla hazırlanmıştır.</p>
+            
+            <div class="terms-section">
+                <h2>1. Veri Sorumlusunun Kimliği</h2>
+                <p>6698 sayılı KVKK uyarınca, kişisel verileriniz veri sorumlusu sıfatıyla bireysel statüde hareket eden Ahmet Evleksiz tarafından aşağıda açıklanan kapsamda işlenebilecektir.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>2. Kişisel Verilerin Hangi Amaçla İşleneceği</h2>
+                <p> • Toplanan kişisel verileriniz (takma ad, e-posta adresi, çalışma/ilerleme verileri, günlük yazıları, blog yorumları ve teknik işlem güvenliği bilgileri), aşağıdaki amaçlarla işlenmektedir:</p>
+                <p> • Platforma üyelik işlemlerinin gerçekleştirilmesi ve oturum yönetimi,</p>
+                <p> • Japonca kelime çalışma, okuma, dinleme araçlarının sunulması ve kişiselleştirilmiş öğrenme deneyiminin (günlük takibi, kelime havuzu vb.) sağlanması,</p>
+                <p> • Blog yazıları üzerinden etkileşim kurulması ve yorum yönetiminin yapılması,</p>
+                <p> • Supabase altyapısı ve Row Level Security (RLS) protokolleri ile bilgi güvenliği süreçlerinin yürütülmesi,</p>
+                <p> • İlerleyen süreçlerde sunulabilecek Google Adsense ve benzeri reklam/analiz faaliyetlerinin yürütülmesi (çerezler vasıtasıyla),</p>
+                <p> • Olası yasal uyuşmazlıklarda ilgili mevzuata uyum sağlanması.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>3. İşlenen Kişisel Verilerin Kimlere ve Hangi Amaçla Aktarılabileceği</h2>
+                <p>Kişisel verileriniz, kullanıcılar arasında herhangi bir paylaşım söz konusu olmamakla birlikte, sadece yukarıda belirtilen amaçların gerçekleştirilmesi doğrultusunda:</p>
+                <p> • Veri saklama ve altyapı güvenliği hizmeti alınan bulut sağlayıcısı Supabase sunucularına (şifrelenmiş olarak),</p>
+                <p> • Site içi trafik ve reklam analizi kapsamında Google (Adsense) servislerine,</p>
+                <p> • Yasal yükümlülükler çerçevesinde talep etmeleri halinde yetkili kamu kurum ve kuruluşlarına aktarılabilecektir.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>4. Kişisel Veri Toplamanın Yöntemi ve Hukuki Sebebi</h2>
+                <p>Kişisel verileriniz, platformumuz üzerinden elektronik ortamda (kayıt formları, günlük araçları ve yorum alanları vasıtasıyla) toplanmaktadır. Bu verilerin işlenmesinin hukuki sebepleri:</p>
+                <p> • Kanunlarda öngörülmesi,</p>
+                <p> • Bir sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olması kaydıyla, sözleşmenin taraflarına ait kişisel verilerin işlenmesinin gerekli olması (Üyelik ve hizmet sözleşmesi),</p>
+                <p> • Veri sorumlusunun meşru menfaatleri için veri işlenmesinin zorunlu olmasıdır. Kayıt esnasında alınan onay kutusu ile kullanıcının açık rızası ve kuralları kabulü güvence altına alınmaktadır.</p>
+            </div>
+
+            <div class="terms-section">
+                <h2>5. KVKK Madde 11 Uyarınca Haklarınız</h2>
+                <p>Kanun’un 11. maddesi gereğince veri sahibi olarak aşağıdaki haklara sahipsiniz:</p>
+                <p> • Kişisel verilerinizin işlenip işlenmediğini öğrenme,</p>
+                <p> • Kişisel verileriniz işlenmişse buna ilişkin bilgi talep etme,</p>
+                <p> • Kişisel verilerinizin işlenme amacını ve bunların amacına uygun kullanılıp kullanılmadığını öğrenme,</p>
+                <p> • Yurt içinde veya yurt dışında kişisel verilerinizin aktarıldığı üçüncü kişileri bilme,</p>
+                <p> • Kişisel verilerinizin eksik veya yanlış işlenmiş olması hâlinde bunların düzeltilmesini isteme,</p>
+                <p> • KVKK mevzuatına uygun olarak kişisel verilerinizin silinmesini veya yok edilmesini isteme (Hesap silme durumunda yorumların anonimleştirilerek saklanması kuralı saklı kalmak kaydıyla),</p>
+                <p> • İşlenen verilerin münhasıran otomatik sistemler vasıtasiyle analiz edilmesi suretiyle kişinin kendisi aleyhine bir sonucun ortaya çıkmasına itiraz etme,</p>
+                <p> • Kişisel verilerinizin kanuna aykırı olarak işlenmesi sebebiyle zarara uğraması hâlinde giderilmesini talep etme.</p>
+                <p>Yukarıda belirtilen haklarınızı kullanmak ve taleplerinizi iletmek için tsutabiapp@gmail.com üzerinden bizimle her zaman iletişime geçebilirsiniz.</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- app.js üzerinden footer.html buraya yüklenecek -->
+    <div id="footer-placeholder" style="width: 100%; display: flex; flex-direction: column;"></div>
+
+    <!-- Sayfa bileşenleri yüklendikten sonra ana app.js çalıştırılır -->
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (typeof loadComponents === 'function') await loadComponents();
+            if (typeof initApp === 'function') await initApp();
+        });
+    </script>
+    
+    <!-- Ortak app.js Entegrasyonu -->
+    <script src="/app.js"></script>
+</body>
+</html>

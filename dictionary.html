@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TsuTabi - Sözlük & Kelime Paketleri</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+    <script src="/cookie-banner.js"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Ortak CSS Dosyası (Navbar, Footer, Tema Değişkenleri ve Genel Stiller) -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <style>
+        /* --- SÖZLÜK SAYFASINA ÖZEL EK STİLLER --- */
+        
+        /* Modern ve Tema Uyumlu Scrollbar (Gece/Gündüz Uyumlu) */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 9999px;
+            transition: background 0.3s ease;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        .hidden { display: none !important; }
+        .rotate-180 { transform: rotate(180deg); }
+
+        .loading-spinner {
+            width: 2rem; height: 2rem; border: 3px solid var(--border-color);
+            border-top-color: var(--primary-indigo); border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin: 1.5rem auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 1023px) { 
+            .mobile-hidden-pane { display: none !important; } 
+        }
+
+        .main-content-wrapper { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem 3rem 1rem; }
+        
+        .grid-layout { width: 100%; max-width: 1200px; display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; }
+        @media (min-width: 1024px) {
+            .grid-layout { grid-template-columns: repeat(12, 1fr); }
+            .col-span-7 { grid-column: span 7; }
+            .col-span-5 { grid-column: span 5; }
+        }
+
+        .content-tab-group { display: flex; background: var(--nickname-bg); padding: 0.25rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 500; border: 1px solid var(--border-color); }
+        .content-tab-btn { flex: 1; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: none; background: transparent; color: var(--text-muted); cursor: pointer; font-weight: 600; }
+        .content-tab-btn.active { background: var(--card-bg); color: var(--primary-indigo); box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid var(--border-color); }
+        
+        .mobile-view-switcher { display: flex; width: 100%; background: var(--nickname-bg); padding: 0.25rem; border-radius: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--border-color); }
+        .mobile-view-btn { flex: 1; padding: 0.625rem; text-align: center; font-size: 0.8rem; font-weight: 700; border: none; background: transparent; color: var(--text-muted); border-radius: 0.5rem; cursor: pointer; }
+        .mobile-view-btn.active { background: var(--card-bg); color: var(--primary-indigo); border: 1px solid var(--border-color); }
+        @media (min-width: 1024px) { .mobile-view-switcher { display: none !important; } }
+
+        .search-wrapper { position: relative; width: 100%; }
+        .search-input { width: 100%; padding: 0.875rem 1rem 0.875rem 2.75rem; border-radius: 0.75rem; border: 1px solid var(--border-color); outline: none; background: var(--card-bg); font-size: 1rem; color: var(--text-main); }
+        .search-input:focus { border-color: var(--primary-indigo); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
+        .search-icon { width: 1.25rem; height: 1.25rem; color: var(--text-light); position: absolute; left: 0.875rem; top: 1rem; }
+
+        .card { background: var(--card-bg); backdrop-filter: var(--backdrop-blur); padding: 1rem; border-radius: 0.75rem; border: 1px solid var(--border-color); }
+        .card-padded { background: var(--card-bg); backdrop-filter: var(--backdrop-blur); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border-color); }
+        .sticky-sidebar { position: sticky; top: 5rem; }
+
+        .badge { font-size: 0.6875rem; padding: 0.125rem 0.5rem; border-radius: 9999px; font-weight: 600; display: inline-block; }
+        .badge-indigo { background: var(--indigo-bg, #e0e7ff); color: var(--indigo-primary, #4f46e5); }
+        .badge-emerald { background: var(--emerald-bg, #d1fae5); color: var(--emerald-primary, #059669); }
+        .badge-gray { background: var(--nickname-bg); color: var(--text-muted); border: 1px solid var(--border-color); }
+
+        .saved-list-container { max-height: calc(100vh - 16rem); overflow-y: auto; padding-right: 0.125rem; }
+        @media (max-width: 1023px) { .saved-list-container { max-height: calc(100vh - 20rem); } }
+        .pack-list-container { max-height: 18rem; overflow-y: auto; }
+        .results-scroll-area { min-height: 250px; }
+
+        .tag-filter-btn { background: var(--nickname-bg); color: var(--text-muted); border: 1px solid var(--border-color); padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 0.6875rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .tag-filter-btn.active { background: var(--primary-indigo); color: #fff; border-color: var(--primary-indigo); }
+
+        .text-xs { font-size: 0.75rem; } .text-sm { font-size: 0.875rem; } .text-base { font-size: 1rem; }
+        .font-bold { font-weight: 700; } .font-medium { font-weight: 500; }
+        .text-muted { color: var(--text-muted); } .text-dark { color: var(--text-dark); }
+        .flex { display: flex; } .flex-col { flex-direction: column; }
+        .items-center { align-items: center; } .justify-between { justify-content: space-between; }
+        .gap-1 { gap: 0.25rem; } .gap-2 { gap: 0.5rem; } .gap-4 { gap: 1rem; }
+        .space-y-2 > * + * { margin-top: 0.5rem; } .space-y-3 > * + * { margin-top: 0.75rem; }
+    </style>
+</head>
+<body>
+
+    <!-- app.js üzerinden navbar.html buraya yüklenecek -->
+    <div id="navbar-placeholder" style="width: 100%;"></div>
+
+    <div class="main-content-wrapper">
+        <div id="dictionaryScreen" style="width: 100%;">
+            <div style="width: 100%; max-width: 1200px; margin: 0 auto;">
+                <div class="mobile-view-switcher">
+                    <button onclick="switchMobileTab('saved')" id="mobTabSaved" class="mobile-view-btn active">📌 Kelimelerim</button>
+                    <button onclick="switchMobileTab('search')" id="mobTabSearch" class="mobile-view-btn">🔍 Sözlük/Paket</button>
+                </div>
+            </div>
+
+            <div class="grid-layout" style="margin: 0 auto;">
+                <!-- SOL PANEL -->
+                <div id="leftPane" class="col-span-7 flex flex-col gap-4 mobile-hidden-pane">
+                    <div class="content-tab-group">
+                        <button onclick="switchView('dictionary')" id="tabDictionary" class="content-tab-btn active">📖 Sözlük</button>
+                        <button onclick="switchView('packs')" id="tabPacks" class="content-tab-btn">📦 Paketler</button>
+                    </div>
+
+                    <!-- Sözlük Arama Görünümü -->
+                    <div id="viewDictionary" class="flex flex-col gap-4">
+                        <div class="search-wrapper">
+                            <input type="text" id="searchInput" placeholder="Romaji veya Anlam..." class="search-input">
+                            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <div id="resultsContainer" class="space-y-3 results-scroll-area">
+                            <div class="text-center py-8 text-muted text-sm card">Öğrenme Havuzu'na eklediğin kelimeler Havuz dolu(15) ise yarın programa düşer!</div>
+                        </div>
+                    </div>
+
+                    <!-- Paketler Görünümü -->
+                    <div id="viewPacks" class="hidden flex flex-col gap-3">
+                        <div class="card-padded flex flex-col gap-2">
+                            <h2 class="font-bold text-sm text-dark">Kelime Paketleri</h2>
+                            <p class="text-xs text-muted">Etiketlerde arama yaparak ilgili paketleri bulabilirsiniz.</p>
+                            <div class="search-wrapper" style="margin-top: 0.5rem;">
+                                <input type="text" id="packSearchInput" placeholder="Paket (etiket) ara..." class="search-input" style="padding: 0.6rem 1rem 0.6rem 2.5rem; font-size: 0.85rem;" oninput="renderPacks()">
+                            </div>
+                        </div>
+                        <div id="packsContainer" class="space-y-3 results-scroll-area">
+                            <div class="loading-spinner"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SAĞ PANEL -->
+                <div id="rightPane" class="col-span-5 card-padded sticky-sidebar" style="overflow: hidden; width: 100%;">
+                    <div class="flex justify-between items-center" style="margin-bottom: 0.75rem; padding-bottom: 0.625rem; border-bottom: 1px solid var(--border-color);">
+                        <div class="flex items-center gap-2">
+                            <h2 class="font-bold text-sm text-dark">Kelimelerin</h2>
+                            <span id="savedCountBadge" class="badge badge-indigo" style="font-weight: 600;">0</span>
+                        </div>
+                        <!-- Çalış / Burayı Çalış Butonu -->
+                        <button id="quizBtn" onclick="startQuiz()" class="btn" style="background: #15803d; color: #ffffff; border: 1px solid #166534; font-size: 0.65rem; padding: 0.35rem 0.6rem; font-weight: 700;">⚡ Çalış</button>
+                    </div>
+                    
+                    <div id="savedTagFiltersContainer" class="flex items-center gap-1" style="overflow-x: auto; padding-bottom: 0.5rem; margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);"></div>
+
+                    <!-- Kelime listesi yükleme alanı -->
+                    <div id="savedWordsContainer" class="space-y-2 saved-list-container" onscroll="handleSavedScroll(this)">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- app.js üzerinden footer.html buraya yüklenecek -->
+    <div id="footer-placeholder" style="width: 100%; display: flex; flex-direction: column;"></div>
+
+    <!-- Sözlük Sayfasına Özel Mantık Scripti -->
+    <script>
+        let currentView = 'dictionary';
+        let currentSavedTagFilter = 'ALL';
+        let openPacksState = new Set();
+        
+        let allDictionaryWords = []; 
+        let savedWordsMap = {}; 
+        let savedWordsListSorted = []; 
+        let dailySessionWordIds = [];
+        
+        let savedVisibleLimit = 20; 
+        const savedBatchSize = 20;
+        let packVisibleLimits = {};
+
+        function getUrlParameter(name) {
+            const regex = new RegExp('[?&]' + name + '=([^&#]*)');
+            const results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        async function initDictionaryApp() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                await fetchSavedWords();
+                await fetchDailySession();
+            }
+
+            await fetchDictionaryData();
+            renderSavedPanel();
+
+            // URL'den tag parametresi kontrolü (Örn: ?tag=xxx)
+            const urlTag = getUrlParameter('tag');
+            if (urlTag) {
+                switchView('packs');
+                const packId = `pack_${urlTag.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                openPacksState.add(packId);
+                if (!packVisibleLimits[urlTag]) packVisibleLimits[urlTag] = 20;
+                renderPacks();
+                
+                // İlgili pakete kaydırma
+                setTimeout(() => {
+                    const packEl = document.getElementById(packId);
+                    if (packEl && packEl.parentElement) {
+                        packEl.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 300);
+            } else if (currentView === 'packs') {
+                renderPacks();
+            }
+        }
+
+        async function fetchDictionaryData() {
+            const { data, error } = await supabaseClient.from('dictionary').select('*');
+            if (!error && data) {
+                allDictionaryWords = data;
+            }
+        }
+
+        async function fetchSavedWords() {
+            if (!currentUser) return;
+            const { data, error } = await supabaseClient
+                .from('saved_words')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                savedWordsMap = {};
+                savedWordsListSorted = data;
+                data.forEach(item => {
+                    savedWordsMap[item.word_id] = item; 
+                });
+            }
+        }
+
+        async function fetchDailySession() {
+            if (!currentUser) return;
+            const todayStr = new Date().toLocaleDateString('en-CA');
+            const { data, error } = await supabaseClient
+                .from('daily_sessions')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .single();
+
+            if (!error && data && data.date === todayStr && data.vocabulary) {
+                dailySessionWordIds = data.vocabulary;
+            }
+        }
+
+        function switchView(view) {
+            currentView = view;
+            const dictView = document.getElementById('viewDictionary');
+            const packsView = document.getElementById('viewPacks');
+            const tabDict = document.getElementById('tabDictionary');
+            const tabPacks = document.getElementById('tabPacks');
+
+            if (view === 'dictionary') {
+                dictView.classList.remove('hidden'); packsView.classList.add('hidden');
+                tabDict.classList.add('active'); tabPacks.classList.remove('active');
+            } else {
+                dictView.classList.add('hidden'); packsView.classList.remove('hidden');
+                tabPacks.classList.add('active'); tabDict.classList.remove('active');
+                
+                // Sekmeye geçildiğinde spinner gösterip listeyi render ediyoruz
+                const container = document.getElementById('packsContainer');
+                if (container) {
+                    container.innerHTML = `<div class="loading-spinner"></div>`;
+                }
+                setTimeout(() => {
+                    renderPacks();
+                }, 50);
+            }
+        }
+
+        function switchMobileTab(tab) {
+            const leftPane = document.getElementById('leftPane');
+            const rightPane = document.getElementById('rightPane');
+            const mobTabSearch = document.getElementById('mobTabSearch');
+            const mobTabSaved = document.getElementById('mobTabSaved');
+
+            if (tab === 'search') {
+                leftPane.classList.remove('mobile-hidden-pane'); rightPane.classList.add('mobile-hidden-pane');
+                mobTabSearch.classList.add('active'); mobTabSaved.classList.remove('active');
+            } else {
+                leftPane.classList.add('mobile-hidden-pane'); rightPane.classList.remove('mobile-hidden-pane');
+                rightPane.classList.remove('sticky-sidebar');
+                mobTabSaved.classList.add('active'); mobTabSearch.classList.remove('active');
+            }
+        }
+
+        async function saveWord(wordId, btnElement) {
+            if (!wordId) return;
+
+            if (!currentUser) {
+                if (btnElement) {
+                    const originalHTML = btnElement.innerHTML;
+                    btnElement.innerHTML = "✨ TsuTabi özelliğini keşfettin";
+                    btnElement.disabled = true;
+                    btnElement.style.background = "#ffe4e6";
+                    btnElement.style.color = "#f43f5e";
+                    btnElement.style.borderColor = "#fda4af";
+                    setTimeout(() => {
+                        btnElement.innerHTML = originalHTML;
+                        btnElement.disabled = false;
+                        btnElement.style.background = "";
+                        btnElement.style.color = "";
+                        btnElement.style.borderColor = "";
+                    }, 3000);
+                }
+                return;
+            }
+
+            if (btnElement) {
+                btnElement.innerText = "Yükleniyor...";
+                btnElement.disabled = true;
+            }
+
+            const { error } = await supabaseClient
+                .from('saved_words')
+                .insert([{ user_id: currentUser.id, word_id: wordId }]);
+
+            if (!error) {
+                savedWordsMap[wordId] = { user_id: currentUser.id, word_id: wordId };
+                savedWordsListSorted.unshift({ user_id: currentUser.id, word_id: wordId, created_at: new Date().toISOString() });
+                
+                updateAllAddButtonsState(wordId, true);
+                renderSavedPanel();
+            } else {
+                console.error("Kelime eklenirken hata oluştu:", error.message);
+                if (btnElement) {
+                    btnElement.innerText = "Hata!";
+                    setTimeout(() => {
+                        btnElement.innerText = "＋ Ekle";
+                        btnElement.disabled = false;
+                    }, 2000);
+                }
+            }
+        }
+
+        function getAddButtonHtml(wordId) {
+            const isAlreadySaved = savedWordsMap && savedWordsMap[wordId];
+            if (isAlreadySaved) {
+                return `<button class="btn" style="background: #15803d; color: #ffffff; cursor: default; font-weight: 600;" disabled>✓ Eklendi</button>`;
+            } else {
+                return `<button onclick="saveWord('${escapeHtml(wordId)}', this)" class="btn btn-indigo-light">＋ Ekle</button>`;
+            }
+        }
+
+        function updateAllAddButtonsState(wordId, isSaved) {
+            const containers = document.querySelectorAll(`[data-word-id="${CSS.escape(wordId)}"] .add-btn-container, div[data-word-id="${CSS.escape(wordId)}"]`);
+            containers.forEach(container => {
+                if (isSaved) {
+                    container.innerHTML = `<button class="btn" style="background: #15803d; color: #ffffff; cursor: default; font-weight: 600;" disabled>✓ Eklendi</button>`;
+                } else {
+                    container.innerHTML = `<button onclick="saveWord('${escapeHtml(wordId)}', this)" class="btn btn-indigo-light">＋ Ekle</button>`;
+                }
+            });
+        }
+
+        async function removeWord(wordId, btnElement) {
+            if (!currentUser) return;
+
+            if (btnElement) { btnElement.innerText = "Çıkarılıyor..."; btnElement.disabled = true; }
+
+            const { error } = await supabaseClient
+                .from('saved_words')
+                .delete()
+                .eq('user_id', currentUser.id)
+                .eq('word_id', wordId);
+
+            if (!error) {
+                delete savedWordsMap[wordId];
+                savedWordsListSorted = savedWordsListSorted.filter(item => item.word_id !== wordId);
+                
+                if (btnElement) {
+                    const rowCard = btnElement.closest('.saved-item-row') || btnElement.closest('.flex.items-center.justify-between');
+                    if (rowCard) {
+                        rowCard.style.transition = "opacity 0.2s";
+                        rowCard.style.opacity = "0";
+                        setTimeout(() => rowCard.remove(), 200);
+                    }
+                }
+                updateAllAddButtonsState(wordId, false);
+                renderSavedPanel();
+            }
+        }
+
+        function filterDisplayTags(tags) {
+            if (!tags) return [];
+            let tagsArray = tags;
+            if (typeof tags === 'string') {
+                tagsArray = tags.split(',').map(t => t.trim());
+            }
+            if (!Array.isArray(tagsArray)) return [];
+            return tagsArray.map(tag => tag.trim()).filter(tag => tag && !tag.toUpperCase().includes('DERS'));
+        }
+
+        function renderPacks() {
+            const container = document.getElementById('packsContainer');
+            const searchInputEl = document.getElementById('packSearchInput');
+            if (!container || !searchInputEl) return;
+            
+            const searchVal = searchInputEl.value.toLowerCase().trim();
+            let packsMap = {};
+            
+            allDictionaryWords.forEach(item => {
+                let tags = filterDisplayTags(item.tags);
+                tags.forEach(tag => {
+                    if (!searchVal || tag.toLowerCase().includes(searchVal)) {
+                        if (!packsMap[tag]) packsMap[tag] = [];
+                        packsMap[tag].push(item);
+                    }
+                });
+            });
+
+            container.innerHTML = '';
+            const keys = Object.keys(packsMap).sort();
+
+            if (keys.length === 0) {
+                container.innerHTML = `<div class="text-center py-6 text-muted text-sm card">Eşleşen paket bulunamadı.</div>`;
+                return;
+            }
+
+            keys.forEach(tag => {
+                const wordsInPack = packsMap[tag];
+                const packId = `pack_${tag.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                const isOpen = openPacksState.has(packId);
+
+                let packHtml = `
+                    <div class="card" style="padding: 0; overflow: hidden;">
+                        <div style="padding: 0.75rem 1rem; background: var(--nickname-bg); cursor: pointer;" class="flex items-center justify-between" onclick="togglePackDropdown('${packId}', '${tag.replace(/'/g, "\\'")}')">
+                            <div class="flex items-center gap-2">
+                                <span class="badge badge-indigo" style="font-size: 0.7rem;">${escapeHtml(tag)}</span>
+                                <span class="text-dark font-medium text-xs">${wordsInPack.length} kelime</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="event.stopPropagation(); addAllPack('${tag.replace(/'/g, "\\'")}', this)" class="btn btn-indigo-light pack-add-btn" style="padding: 0.25rem 0.5rem;">
+                                    📦 Tümünü Ekle
+                                </button>
+                                <svg id="icon_${packId}" style="width: 1rem; height: 1rem; color: var(--text-light); transition: transform 0.2s; ${isOpen ? 'transform: rotate(180deg);' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+                        <div id="${packId}" class="pack-list-container ${isOpen ? '' : 'hidden'}" style="border-top: 1px solid var(--border-color);" onscroll="handlePackScroll(this, '${tag.replace(/'/g, "\\'")}')"></div>
+                    </div>
+                `;
+                container.innerHTML += packHtml;
+                if (isOpen) { renderPackWords(packId, tag); }
+            });
+        }
+
+        function togglePackDropdown(packId, tag) {
+            const dropdown = document.getElementById(packId);
+            const icon = document.getElementById(`icon_${packId}`);
+            if (!dropdown || !icon) return;
+
+            const isHidden = dropdown.classList.contains('hidden');
+            
+            dropdown.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+
+            if (isHidden) {
+                openPacksState.add(packId);
+                if (!packVisibleLimits[tag]) packVisibleLimits[tag] = 20;
+                renderPackWords(packId, tag);
+            } else {
+                openPacksState.delete(packId);
+            }
+        }
+
+        function handlePackScroll(element, tag) {
+            if (element.scrollTop + element.clientHeight >= element.scrollHeight - 20) {
+                if (!packVisibleLimits[tag]) packVisibleLimits[tag] = 20;
+                packVisibleLimits[tag] += 20;
+                const packId = `pack_${tag.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                renderPackWords(packId, tag);
+            }
+        }
+
+        function renderPackWords(packId, tag) {
+            const dropdown = document.getElementById(packId);
+            if (!dropdown) return;
+
+            const wordsInPack = allDictionaryWords.filter(word => filterDisplayTags(word.tags).includes(tag));
+            const limit = packVisibleLimits[tag] || 20;
+
+            let contentHtml = '';
+            wordsInPack.slice(0, limit).forEach(word => {
+                contentHtml += `
+                    <div style="padding: 0.625rem 0.875rem; border-bottom: 1px solid var(--border-color);" class="flex items-center justify-between" data-word-id="${escapeHtml(word.word_id)}">
+                        <div>
+                            <span class="font-bold text-dark text-sm" style="margin-right: 0.375rem;">${escapeHtml(word.kanji)}</span>
+                            <span style="color: var(--primary-indigo); font-size: 0.8rem;">${escapeHtml(word.kana || '')}</span>
+                            <span class="text-muted text-xs" style="margin-left: 0.25rem;">(${escapeHtml(word.romaji || '')})</span>
+                            <div class="text-muted text-xs">${escapeHtml(word.meaning)}</div>
+                        </div>
+                        <div class="add-btn-container">
+                            ${getAddButtonHtml(word.word_id)}
+                        </div>
+                    </div>
+                `;
+            });
+            dropdown.innerHTML = contentHtml;
+        }
+
+        async function addAllPack(tag, btnElement) {
+            if (!currentUser) {
+                if (btnElement) {
+                    const originalHTML = btnElement.innerHTML;
+                    btnElement.innerHTML = "✨ TsuTabi özelliğini keşfettin";
+                    btnElement.disabled = true;
+                    btnElement.style.background = "#ffe4e6";
+                    btnElement.style.color = "#f43f5e";
+                    btnElement.style.borderColor = "#fda4af";
+                    setTimeout(() => {
+                        btnElement.innerHTML = originalHTML;
+                        btnElement.disabled = false;
+                        btnElement.style.background = "";
+                        btnElement.style.color = "";
+                        btnElement.style.borderColor = "";
+                    }, 3000);
+                }
+                return;
+            }
+
+            const wordsInPack = allDictionaryWords.filter(word => filterDisplayTags(word.tags).includes(tag));
+            const unsavedWords = wordsInPack.filter(word => !savedWordsMap[word.word_id]);
+
+            if (unsavedWords.length === 0) return;
+
+            if (btnElement) {
+                btnElement.innerText = "Yükleniyor...";
+                btnElement.disabled = true;
+            }
+
+            const insertPayload = unsavedWords.map(word => ({
+                user_id: currentUser.id,
+                word_id: word.word_id
+            }));
+
+            const { error } = await supabaseClient
+                .from('saved_words')
+                .insert(insertPayload);
+
+            if (!error) {
+                unsavedWords.forEach(word => {
+                    savedWordsMap[word.word_id] = { user_id: currentUser.id, word_id: word.word_id };
+                    savedWordsListSorted.unshift({ user_id: currentUser.id, word_id: word.word_id, created_at: new Date().toISOString() });
+                    updateAllAddButtonsState(word.word_id, true);
+                });
+                renderSavedPanel();
+
+                if (btnElement) {
+                    btnElement.innerText = "✓ Eklendi";
+                    btnElement.style.background = "#15803d";
+                    btnElement.style.color = "#ffffff";
+                    btnElement.style.borderColor = "";
+                    btnElement.disabled = true;
+                }
+            } else {
+                if (btnElement) {
+                    btnElement.innerText = "Hata!";
+                    setTimeout(() => {
+                        btnElement.innerText = "📦 Tümünü Ekle";
+                        btnElement.disabled = false;
+                    }, 2000);
+                }
+            }
+        }
+
+        function renderSavedTagFilters() {
+            const filterContainer = document.getElementById('savedTagFiltersContainer');
+            if (!filterContainer) return;
+
+            let tagsSet = new Set();
+            
+            savedWordsListSorted.forEach(item => {
+                let dictItem = allDictionaryWords.find(w => w.word_id === item.word_id);
+                if (dictItem) {
+                    filterDisplayTags(dictItem.tags).forEach(t => tagsSet.add(t));
+                }
+            });
+
+            let tagsArr = Array.from(tagsSet).sort();
+            
+            // "Hepsi" her zaman en başta ve varsayılan olarak seçili başlar
+            let html = `<button onclick="setSavedTagFilter('ALL')" class="tag-filter-btn ${currentSavedTagFilter === 'ALL' ? 'active' : ''}">Hepsi</button>`;
+            
+            // Günün Kelimeleri filtresi eklendi
+            if (dailySessionWordIds.length > 0) {
+                html += `<button onclick="setSavedTagFilter('GUNUN_KELIMELERI')" class="tag-filter-btn ${currentSavedTagFilter === 'GUNUN_KELIMELERI' ? 'active' : ''}">⭐ Günün Kelimeleri</button>`;
+            }
+
+            tagsArr.forEach(tag => {
+                html += `<button onclick="setSavedTagFilter('${tag}')" class="tag-filter-btn ${currentSavedTagFilter === tag ? 'active' : ''}">${escapeHtml(tag)}</button>`;
+            });
+            filterContainer.innerHTML = html;
+        }
+
+        function setSavedTagFilter(tag) {
+            currentSavedTagFilter = tag;
+            savedVisibleLimit = 20; 
+            renderSavedPanel();
+            updateQuizButtonText();
+        }
+
+function updateQuizButtonText() {
+            const quizBtn = document.getElementById('quizBtn');
+            if (!quizBtn) return;
+
+            // Filtrelenmiş kelime sayısını bulmak için renderSavedPanel'deki mantığı kullanıyoruz
+            let filteredItems = savedWordsListSorted.filter(item => {
+                let dictItem = allDictionaryWords.find(w => w.word_id === item.word_id);
+                if (!dictItem) return false;
+                if (currentSavedTagFilter === 'ALL') return true;
+                if (currentSavedTagFilter === 'GUNUN_KELIMELERI') {
+                    return dailySessionWordIds.includes(item.word_id);
+                }
+                return filterDisplayTags(dictItem.tags).includes(currentSavedTagFilter);
+            });
+
+            // Eğer kelime sayısı 4'ten azsa
+            if (filteredItems.length < 4) {
+                quizBtn.innerText = "En az 4";
+                quizBtn.disabled = true;
+                quizBtn.style.opacity = "0.6";
+                quizBtn.style.cursor = "not-allowed";
+            } else {
+                quizBtn.disabled = false;
+                quizBtn.style.opacity = "1";
+                quizBtn.style.cursor = "pointer";
+
+                if (currentSavedTagFilter === 'ALL') {
+                    quizBtn.innerText = "⚡ Çalış";
+                } else {
+                    quizBtn.innerText = "⚡ Burayı çalış";
+                }
+            }
+        }
+
+        function handleSavedScroll(element) {
+            if (element.scrollTop + element.clientHeight >= element.scrollHeight - 20) {
+                savedVisibleLimit += savedBatchSize;
+                renderSavedPanel(true); 
+            }
+        }
+
+        function renderSavedPanel(isAppending = false) {
+            const container = document.getElementById('savedWordsContainer');
+            if (!container) return;
+
+            if (!isAppending) { renderSavedTagFilters(); }
+
+            let filteredItems = savedWordsListSorted.filter(item => {
+                let dictItem = allDictionaryWords.find(w => w.word_id === item.word_id);
+                if (!dictItem) return false;
+                if (currentSavedTagFilter === 'ALL') return true;
+                if (currentSavedTagFilter === 'GUNUN_KELIMELERI') {
+                    return dailySessionWordIds.includes(item.word_id);
+                }
+                return filterDisplayTags(dictItem.tags).includes(currentSavedTagFilter);
+            });
+
+            const badge = document.getElementById('savedCountBadge');
+            if (badge) badge.innerText = filteredItems.length;
+            updateQuizButtonText();
+
+            if (filteredItems.length === 0) {
+                container.innerHTML = `<p class="text-muted text-xs text-center py-6">Kayıtlı kelime bulunamadı.</p>`;
+                return;
+            }
+
+            let htmlContent = '';
+            filteredItems.slice(0, savedVisibleLimit).forEach(item => {
+                let dictItem = allDictionaryWords.find(w => w.word_id === item.word_id) || {};
+                htmlContent += `
+                    <div style="background: var(--nickname-bg); border: 1px solid var(--border-color); padding: 0.625rem; border-radius: 0.5rem;" class="flex items-center justify-between gap-2 text-xs saved-item-row" data-word-id="${escapeHtml(item.word_id)}">
+                        <div class="flex items-center gap-2" style="overflow: hidden; flex: 1; min-width: 0;">
+                            <div style="overflow: hidden; flex: 1; min-width: 0;">
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    <span class="font-bold text-dark text-sm">${escapeHtml(dictItem.kanji || '')}</span>
+                                    <span style="font-size: 0.65rem; color: var(--text-light);">(${escapeHtml(dictItem.romaji || '')})</span>
+                                </div>
+                                <div class="text-muted" style="word-break: break-word;" title="${escapeHtml(dictItem.meaning || '')}">${escapeHtml(dictItem.meaning || '')}</div>
+                            </div>
+                        </div>
+                        <!-- Çıkar Butonu -->
+                        <button onclick="removeWord('${escapeHtml(item.word_id)}', this)" class="btn" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); padding: 0.25rem 0.5rem; flex-shrink: 0; font-weight: 700;">Çıkar</button>
+                    </div>
+                `;
+            });
+            container.innerHTML = htmlContent;
+        }
+
+        function startQuiz() {
+            if (currentSavedTagFilter === 'ALL') {
+                window.location.href = 'quiz';
+            } else {
+                window.location.href = `quiz?tag=${encodeURIComponent(currentSavedTagFilter)}`;
+            }
+        }
+
+        const searchInput = document.getElementById('searchInput');
+        const resultsContainer = document.getElementById('resultsContainer');
+
+        function fetchSearchResults() {
+            if (!searchInput || !resultsContainer) return;
+            const query = searchInput.value.toLowerCase().trim();
+            
+            if (query.length < 1) {
+                resultsContainer.innerHTML = `<div class="text-center py-8 text-muted text-sm card">Öğrenme Havuzun eklediğiniz kelimeler Havuz dolu(15) ise yarın programa düşer!</div>`;
+                return;
+            }
+
+            const matchedWords = allDictionaryWords.filter(w => {
+                const romajiMatch = w.romaji && w.romaji.toLowerCase().includes(query);
+                const meaningMatch = w.meaning && w.meaning.toLowerCase().includes(query);
+                return romajiMatch || meaningMatch;
+            }).slice(0, 10);
+            
+            resultsContainer.innerHTML = '';
+            
+            if (matchedWords.length === 0) {
+                resultsContainer.innerHTML = `<div class="text-center py-8 text-muted text-sm card">Sonuç bulunamadı 🥲</div>`;
+                return;
+            }
+
+            matchedWords.forEach(item => {
+                const validTags = filterDisplayTags(item.tags);
+                let tagsHtml = validTags.map(tag => `<span class="badge badge-indigo" style="margin-right: 0.25rem;">${escapeHtml(tag)}</span>`).join('');
+                
+                let saveButtonHtml = getAddButtonHtml(item.word_id);
+
+                const html = `
+                    <div class="card-padded" data-word-id="${escapeHtml(item.word_id)}">
+                        <div class="flex justify-between items-start" style="margin-bottom: 0.5rem;">
+                            <div>
+                                <span style="font-size: 1.5rem;" class="font-bold text-dark">${escapeHtml(item.kanji || '')}</span>
+                                <span class="text-base font-medium" style="color: var(--primary-indigo); margin-left: 0.5rem;">${escapeHtml(item.kana || '')}</span>
+                                <span class="text-xs text-muted" style="margin-left: 0.375rem;">(${escapeHtml(item.romaji || '')})</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="badge badge-gray">${escapeHtml(item.pos || '')}</span>
+                                <div class="add-btn-container">${saveButtonHtml}</div>
+                            </div>
+                        </div>
+                        <div class="text-base font-medium text-dark" style="margin-bottom: 0.75rem;">${escapeHtml(item.meaning)}</div>
+                        ${item.example_kanji || item.example_kana ? `
+                            <div style="background: var(--nickname-bg); padding: 0.625rem; border-radius: 0.5rem; border: 1px solid var(--border-color); margin-bottom: 0.625rem;" class="text-xs space-y-1">
+                                <div class="font-medium text-dark">${escapeHtml(item.example_kanji || item.example_kana || '')}</div>
+                                <div class="text-muted" style="font-size: 0.6875rem;">${escapeHtml(item.example_romaji || '')}</div>
+                                <div class="text-muted" style="font-style: italic;">"${escapeHtml(item.example_meaning || '')}"</div>
+                            </div>
+                        ` : ''}
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem;">${tagsHtml}</div>
+                    </div>
+                `;
+                resultsContainer.innerHTML += html;
+            });
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', fetchSearchResults);
+        }
+
+        function escapeHtml(str) {
+            return str ? str.toString().replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t])) : '';
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await loadComponents(); 
+            await initApp();        
+            await initDictionaryApp(); 
+        });
+    </script>
+    
+    <!-- Ortak app.js Entegrasyonu -->
+    <script src="/app.js"></script>
+</body>
+</html>

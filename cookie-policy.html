@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TsuTabi - Çerez Politikası</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+    <script src="/cookie-banner.js"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Ortak CSS Dosyası (Navbar, Footer, Tema Değişkenleri ve Genel Stiller) -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <style>
+        /* --- ÇEREZ POLİTİKASI SAYFASINA ÖZEL STİLLER --- */
+        .main-content-wrapper {
+            flex: 1;
+            width: 100%;
+            max-width: 950px;
+            margin: 0 auto;
+            padding: 2.5rem 1.5rem 4rem 1.5rem;
+        }
+
+        .policy-card {
+            background: var(--card-bg);
+            backdrop-filter: var(--backdrop-blur);
+            border-radius: 1.75rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+            padding: 3rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2.25rem;
+        }
+
+        .policy-header {
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .policy-header h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary-anime) 0%, var(--primary-indigo) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .policy-header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .policy-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+        }
+
+        .policy-box {
+            background: var(--nickname-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .policy-box:hover {
+            border-color: var(--primary-anime);
+            transform: translateY(-2px);
+        }
+
+        .policy-box h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .policy-box p {
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: var(--text-main);
+        }
+
+        @media (max-width: 768px) {
+            .policy-card { padding: 1.75rem 1.25rem; }
+            .policy-header h1 { font-size: 1.75rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- app.js üzerinden navbar.html buraya yüklenecek -->
+    <div id="navbar-placeholder"></div>
+
+    <!-- Ana İçerik: Çerez Politikası -->
+    <div class="main-content-wrapper">
+        <div class="policy-card">
+            
+            <div class="policy-header">
+                <h1>Çerez Politikası</h1>
+                <p>Son Güncelleme: Eylül 2026</p>
+            </div>
+            
+            <div class="policy-grid">
+                <div class="policy-box">
+                    <h2>🍪 1. Çerez Nedir?</h2>
+                    <p>Çerezler, ziyaret ettiğiniz internet siteleri tarafından tarayıcınıza depolanan küçük metin dosyalarıdır. Sitemizin düzgün çalışmasını sağlamak, kullanıcı deneyiminizi en üst düzeye çıkarmak ve güvenli bir oturum yönetimi sunmak amacıyla çeşitli çerez teknolojileri kullanmaktayız.</p>
+                </div>
+
+                <div class="policy-box">
+                    <h2>🛡️ 2. Kullandığımız Çerez Türleri ve Amaçları</h2>
+                    <p><strong>Zorunlu ve Oturum Çerezleri:</strong> Sitemizde hesap güvenliğinizi sağlamak, oturumunuzun açık kalmasını koordine etmek ve tema tercihlerinizi (gece/gündüz modu gibi) hatasız yönetmek için teknik olarak gerekli çerezler ve yerel depolama (localStorage) araçları kullanılır. Bu çerezler sitenin temel fonksiyonları için şarttır.</p>
+                    <p style="margin-top: 0.5rem;"><strong>Üçüncü Taraf ve Reklam Çerezleri (Google AdSense):</strong> Sitemizde gelecekte sizlere ilgi alanınıza uygun reklamlar sunabilmek ve reklam performansını güvenle ölçebilmek amacıyla üçüncü taraf iş ortakımız olan Google AdSense çerezleri devreye alınabilecektir.</p>
+                </div>
+
+                <div class="policy-box">
+                    <h2>⚙️ 3. Çerez Tercihlerinin Yönetimi</h2>
+                    <p>Kullanıcılar, tarayıcı ayarlarını değiştirerek çerezleri diledikleri zaman silebilir veya engelleyebilirler. Ancak, zorunlu oturum çerezlerinin tamamen reddedilmesi durumunda sitemizdeki hesap yönetimi ve çalışma alanlarına giriş gibi temel özelliklerin kısıtlanabileceğini belirtmek isteriz.</p>
+                </div>
+
+                <div class="policy-box">
+                    <h2>📞 4. Bizimle İletişim</h2>
+                    <p>Çerez politikamız veya kişisel verilerinizin işlenme süreçleri hakkında herhangi bir sorunuz olması durumunda, iletişim kanallarımız üzerinden bizimle her zaman bağlantı kurabilirsiniz.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- app.js üzerinden footer.html buraya yüklenecek -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Sayfa Başlatma Scripti -->
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            await loadComponents(); // Ortak bileşenleri (navbar, footer) yükler
+            await initApp();        // Oturum ve tema ayarlarını yönetir
+        });
+    </script>
+    <!-- Ortak app.js Dosyası -->
+    <script src="/app.js"></script>
+</body>
+</html>

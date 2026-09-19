@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dijitalde Gülme - TsuTabi</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Supabase JS Kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Ortak Çerez ve Consent Mode Yönetimi -->
+    <script src="/cookie-banner.js"></script>
+    
+    <!-- Ortak CSS Dosyası (Navbar, Footer, Tema Değişkenleri ve Genel Stiller) -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <style>
+        /* --- SAYFAYA ÖZEL EK STİLLER --- */
+        .main-container { flex: 1; width: 100%; max-width: 900px; margin: 0 auto; padding: 2rem 1rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        .card { background: var(--card-bg); backdrop-filter: var(--backdrop-blur); padding: 1.5rem; border-radius: 1.25rem; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .section-title { font-weight: 700; font-size: 1rem; color: var(--text-dark); margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; }
+        .blog-detail-title { font-size: 1.5rem; font-weight: 800; color: var(--text-dark); margin-bottom: 0.75rem; line-height: 1.3; }
+        .blog-content { font-size: 1rem; line-height: 1.7; color: var(--text-main); margin-bottom: 1.5rem; white-space: pre-wrap; }
+        .tag { background: var(--badge-bg, #e0e7ff); color: var(--badge-text, #6366f1); font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 9999px; display: inline-block; }
+        .card-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 1rem; }
+        .pdf-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--btn-bg); color: var(--text-dark); padding: 0.75rem 1.25rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.9rem; text-decoration: none; border: 1px solid var(--border-color); }
+        .vocab-item { background: var(--btn-bg); border: 1px solid var(--border-color); padding: 0.875rem 1rem; border-radius: 0.75rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+        
+        /* --- YENİ EKLENEN STİLLER --- */
+        .vocab-saved-badge {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.25);
+            padding: 0.35rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            white-space: nowrap;
+        }
+        .feature-discovery-badge {
+            display: inline-block;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary-indigo, #6366f1);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .comment-input { width: 100%; padding: 0.75rem; border-radius: 0.75rem; border: 1px solid var(--border-color); font-family: inherit; font-size: 0.9rem; outline: none; background: var(--card-bg); color: var(--text-dark); resize: vertical; min-height: 80px; margin-bottom: 0.5rem; }
+        .comment-card { background: var(--btn-bg); border: 1px solid var(--border-color); padding: 0.875rem 1rem; border-radius: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; }
+        .comment-author { font-weight: 700; font-size: 0.85rem; color: var(--primary-indigo); }
+        .comment-text { font-size: 0.9rem; color: var(--text-dark); }
+        .no-data { text-align: center; color: var(--text-muted); padding: 1.5rem; font-size: 0.875rem; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+        .modal-overlay.hidden { display: none; }
+        .modal-content { background: var(--card-bg); padding: 1.5rem; border-radius: 1.25rem; width: 100%; max-width: 380px; text-align: center; border: 1px solid var(--border-color); }
+
+        /* --- MODERN TOAST BİLDİRİM STİLLERİ --- */
+        #toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            pointer-events: none;
+        }
+        .tsu-toast {
+            pointer-events: auto;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            backdrop-filter: var(--backdrop-blur);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 0.875rem 1.25rem;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 280px;
+            max-width: 380px;
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            opacity: 0;
+        }
+        .tsu-toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        .tsu-toast-icon {
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .tsu-toast-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            flex: 1;
+        }
+        .tsu-toast-title {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+        .tsu-toast-msg {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.35;
+        }
+        .tsu-toast.success { border-left: 4px solid var(--primary-anime); }
+        .tsu-toast.error { border-left: 4px solid #ef4444; }
+    </style>
+</head>
+<body>
+
+    <!-- Dinamik Toast Konteyneri -->
+    <div id="toast-container"></div>
+
+    <!-- Oturum Uyarı ve Özellik Keşif Modalı -->
+    <div id="profileWarningModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="feature-discovery-badge">TsuTabi Özelliği</span>
+            <div style="font-size: 2.5rem; margin-bottom: 0.25rem;">🦊</div>
+            <h2 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-dark);">Kelime Havuzunu Keşfet!</h2>
+            <p style="font-size: 0.85rem; margin-bottom: 1.25rem; color: var(--text-muted); line-height: 1.5;">Kelimeleri tek tıkla hesabına kaydedebilir, kişiselleştirilmiş sözlük havuzunla Japonca öğrenimini hızlandırabilirsin. Hemen oturum aç veya ücretsiz kayıt ol!</p>
+            <div style="display: flex; gap: 0.5rem;">
+                <button onclick="document.getElementById('profileWarningModal').classList.add('hidden')" class="btn" style="flex: 1;">Kapat</button>
+                <a href="/register" class="btn btn-anime" style="flex: 1; text-decoration: none;">Oturum Aç</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- app.js üzerinden navbar.html buraya yüklenecek -->
+    <div id="navbar-placeholder" style="width: 100%;"></div>
+
+    <!-- Ana İçerik -->
+    <div class="main-container">
+        <div class="card">
+            <h1 class="blog-detail-title">Dijitalde Gülme</h1>
+            <div class="card-meta">
+                <span class="tag">#kültür</span>
+            </div>
+            <div class="blog-content">
+İlk defa Tandem'den bir Japon arkadaş edinmiştim. Ve klavyeden bir lafına güldüğüm için sjsjsjsjsj tarzı gülmüştüm. Sonra belki orada başka bir şey kullanılıyordur diye açıklama yaptım. Sonra büyük harflerle yazarsam kahkaha gibi olur dedim. Sonra o da bana bunu anlattı. Japonların internet ortamında nasıl gülmeyi ifade ettiklerini.
+
+1. Temel: "www" (Wara)
+Nasıl çalışır: "hahaha" veya "lol" mantığının Japonca karşılığı olan "warau" (gülmek) fiilinin baş harfidir. Tek bir "w" yazmak yerine yan yana dizerek wwwwww şeklinde kullanırlar.
+
+Ne anlama gelir: Bizdeki sksksks veya jfgjfhfh ile birebir aynı işlevi görür. Ne kadar çok w yan yana gelirse, gülmenin şiddeti o kadar artar.
+
+Örnek: O kadar komikti ki wwww (Yani: Çok güldüm sksksks).
+
+2. Üst Seviye Gülüş: "草" (Kusa - Ot / Çimen)
+Nasıl çalışır: Japonlar çok fazla wwwwww yazdıklarında, ekrandaki o görüntü tuhaf bir şekilde çimenlik/otlak alanına benziyor (wwwww yan yana dik otlar gibi duruyor). Zamanla internet geyiği olarak "çimen" anlamına gelen "kusa" (草) kelimesini doğrudan gülmek için kullanmaya başlamışlar.
+
+Ne anlama gelir? Gençler arasında "Kanka koptum, yarıldım" manasına gelir. Hatta gülmekten yerlere yattığını belirtmek için kökünden sökülmüş çimen anlamında "daikusa" (大草 - büyük çimen) veya "hayasugite kusa" (Hızlıca çimene döndüm/Oha çok komik) gibi türevlerini bile yaparlar.
+            </div>
+            <a href="https://ornek-pdf-linki.pdf" target="_blank" class="pdf-btn" id="pdfLinkBtn" style="display: none;">📄 Detaylı PDF</a>
+        </div>
+
+        <div class="card">
+            <div class="section-title">
+                <span>📚 Kelime Havuzu</span>
+                <button class="btn btn-anime" onclick="saveAllVocabulary()" style="font-size: 0.7rem; padding: 0.3rem 0.6rem;">📚 Tümünü Kaydet</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.75rem;" id="vocabListContainer">
+                <div class="no-data">Yükleniyor...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title"><span>💬 Yorumlar</span></div>
+            <div id="commentSectionContainer">
+                <div class="no-data">Yorumlar yükleniyor...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- app.js üzerinden footer.html buraya yüklenecek -->
+    <div id="footer-placeholder" style="width: 100%; display: flex; flex-direction: column;"></div>
+
+    <!-- Sayfaya Özel Fonksiyonlar ve Mantık -->
+    <script>
+        const BLOG_ID = "e8a611fd-207a-4173-84ce-b046e2e04f2a"; 
+        const PAGE_VOCABULARY = ["笑う"];
+        let resolvedVocabData = [];
+        let userSavedWords = new Set();
+
+        /* --- MODERN TOAST BİLDİRİM TETİKLEYİCİSİ --- */
+        function showToast(message, type = 'success', title = '') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `tsu-toast ${type}`;
+            
+            const icon = type === 'success' ? '🌸' : '⚠️';
+            const defaultTitle = type === 'success' ? 'Harika!' : 'Dikkat!';
+            
+            toast.innerHTML = `
+                <div class="tsu-toast-icon">${icon}</div>
+                <div class="tsu-toast-content">
+                    <span class="tsu-toast-title">${title || defaultTitle}</span>
+                    <span class="tsu-toast-msg">${message}</span>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 10);
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        async function initBlogPage() {
+            await loadComments();
+
+            if (PAGE_VOCABULARY.length > 0 && typeof supabaseClient !== 'undefined') {
+                const { data: dictData } = await supabaseClient
+                    .from('dictionary')
+                    .select('*')
+                    .in('kanji', PAGE_VOCABULARY);
+
+                if (dictData) {
+                    resolvedVocabData = PAGE_VOCABULARY.map(k => dictData.find(d => d.kanji === k)).filter(Boolean);
+                }
+
+                if (currentUser && resolvedVocabData.length > 0) {
+                    const wordIds = resolvedVocabData.map(w => w.id || w.word_id);
+                    const { data: savedData } = await supabaseClient
+                        .from('saved_words')
+                        .select('word_id')
+                        .eq('user_id', currentUser.id)
+                        .in('word_id', wordIds);
+                    
+                    if (savedData) {
+                        savedData.forEach(item => userSavedWords.add(item.word_id));
+                    }
+                }
+            }
+            renderVocabularyList();
+        }
+
+        function renderVocabularyList() {
+            const container = document.getElementById('vocabListContainer');
+            if (!container) return;
+
+            if (resolvedVocabData.length === 0) {
+                container.innerHTML = '<div class="no-data">Bu yazıda kelime bulunmuyor veya sözlükte eşleşmedi.</div>';
+                return;
+            }
+
+            container.innerHTML = resolvedVocabData.map(w => {
+                const wordId = w.id || w.word_id;
+                const isSaved = userSavedWords.has(wordId);
+                return `
+                    <div class="vocab-item" data-word-id="${wordId}">
+                        <div>
+                            <strong>${escapeHtml(w.kanji)}</strong> (${escapeHtml(w.kana || '')} / ${escapeHtml(w.romaji || '')})
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">${escapeHtml(w.meaning)}</div>
+                        </div>
+                        ${isSaved 
+                            ? `<div class="vocab-saved-badge">✓ Kayıtlı</div>` 
+                            : `<button class="btn btn-outline" onclick="saveWordToSupabase('${wordId}', this)">Kaydet</button>`
+                        }
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function saveWordToSupabase(wordId, btn) {
+            if (!currentUser) {
+                document.getElementById('profileWarningModal').classList.remove('hidden');
+                return;
+            }
+
+            if (userSavedWords.has(wordId)) return;
+
+            btn.disabled = true;
+            btn.innerText = "Kaydediliyor...";
+
+            const { error } = await supabaseClient.from('saved_words').insert([
+                { user_id: currentUser.id, word_id: wordId }
+            ]);
+
+            if (!error) {
+                userSavedWords.add(wordId);
+                renderVocabularyList();
+                showToast('Kelime başarıyla kelime havuzuna eklendi.', 'success', 'Kelime Kaydedildi');
+            } else {
+                btn.disabled = false;
+                btn.innerText = "Kaydet";
+                showToast('Kelime kaydedilirken bir hata oluştu.', 'error', 'Hata');
+            }
+        }
+
+        async function saveAllVocabulary() {
+            if (!currentUser) {
+                document.getElementById('profileWarningModal').classList.remove('hidden');
+                return;
+            }
+
+            const unregisteredWords = resolvedVocabData.filter(w => !userSavedWords.has(w.id || w.word_id));
+
+            if (unregisteredWords.length === 0) {
+                showToast('Listelenen tüm kelimeler zaten kayıtlı!', 'error', 'Bilgi');
+                return;
+            }
+
+            const insertPayload = unregisteredWords.map(w => ({
+                user_id: currentUser.id,
+                word_id: w.id || w.word_id
+            }));
+
+            const { error } = await supabaseClient.from('saved_words').insert(insertPayload);
+
+            if (!error) {
+                unregisteredWords.forEach(w => userSavedWords.add(w.id || w.word_id));
+                renderVocabularyList();
+                showToast('Tüm kelimeler başarıyla kaydedildi.', 'success', 'Toplu Kayıt');
+            } else {
+                showToast('Kelimeler toplu kaydedilirken bir hata oluştu.', 'error', 'Hata');
+            }
+        }
+
+        async function loadComments() {
+            if (typeof supabaseClient === 'undefined') return;
+            const { data: commentsData } = await supabaseClient
+                .from('comments')
+                .select('*')
+                .eq('blog_id', BLOG_ID)
+                .eq('is_approved', true);
+
+            renderCommentsSection(commentsData || []);
+        }
+
+        function renderCommentsSection(comments) {
+            const container = document.getElementById('commentSectionContainer');
+            if (!container) return;
+            
+            let comHtml = comments.length === 0 ? '<div class="no-data">Henüz onaylanmış yorum bulunmuyor. İlk yorumu sen yap!</div>' : comments.map(c => `
+                <div class="comment-card"><div class="comment-author">${escapeHtml(c.nickname)}</div><div class="comment-text">${escapeHtml(c.content)}</div></div>
+            `).join('');
+
+            let commentFormHtml = '';
+            if (currentUser) {
+                commentFormHtml = `
+                    <div id="comForm" style="margin-bottom: 1rem;">
+                        <textarea id="cInput" class="comment-input" maxlength="150" placeholder="Düşüncelerin..."></textarea>
+                        <button class="btn btn-anime" onclick="postComment()">Gönder</button>
+                    </div>
+                    <div id="comSucc" style="display:none; color:var(--success-text); font-weight:700; margin-bottom:1rem;">Yorumunuz gönderildi! Onaylandıktan sonra yayınlanacaktır.</div>
+                `;
+            } else {
+                commentFormHtml = `
+                    <div style="text-align: center; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; align-items: center; margin-bottom: 1rem;">
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">Yorum yapmak ve tartışmalara katılmak için oturum açmalısın.</p>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <a href="/register" class="btn btn-outline">Oturum Aç</a>
+                            <a href="/register" class="btn btn-anime">Kayıt Ol</a>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = `
+                ${commentFormHtml}
+                <div style="display:flex; flex-direction:column; gap:0.75rem;">${comHtml}</div>
+            `;
+        }
+
+        async function postComment() {
+            if (!currentUser || !userProfile) { 
+                document.getElementById('profileWarningModal').classList.remove('hidden'); 
+                return; 
+            }
+            const text = document.getElementById('cInput').value.trim();
+            if (!text) return;
+            
+            const { error } = await supabaseClient.from('comments').insert([{ 
+                blog_id: BLOG_ID, 
+                user_id: currentUser.id, 
+                nickname: userProfile.nickname, 
+                content: text
+            }]);
+            
+            if (!error) {
+                document.getElementById('comForm').style.display = 'none';
+                document.getElementById('comSucc').style.display = 'block';
+                showToast('Yorumunuz başarıyla gönderildi.', 'success', 'Yorum Alındı');
+            } else {
+                showToast('Yorum gönderilemedi.', 'error', 'Hata');
+            }
+        }
+
+        function escapeHtml(str) {
+            return str ? str.replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t])) : '';
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadComponents();
+            await initApp();
+            setTimeout(initBlogPage, 300);
+        });
+    </script>
+    
+    <!-- Ortak app.js Entegrasyonu -->
+    <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<header>
+    <div class="nav-container">
+        <a href="/" class="brand-container">
+            <img src="/images/logo.png" alt="TsuTabi Logo" style="height: 28px; width: auto; object-fit: contain;">
+            <h1 style="font-size: 1rem; font-weight: 800; color: var(--text-dark);">TsuTabi</h1>
+        </a>
+        <div class="nav-right" id="desktopNavRight"></div>
+        <div class="menu-toggle" onclick="toggleMobileDrawer()">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
+</header>
+<div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobileDrawer()"></div>
+<div class="mobile-drawer" id="mobileDrawer">
+    <div class="mobile-drawer-header">
+        <span style="font-weight: 800; font-size: 0.9rem; color: var(--text-dark);">Menü</span>
+        <button onclick="toggleMobileDrawer()" style="background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-muted);">✕</button>
+    </div>
+    <div id="mobileDrawerContent" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+</div>

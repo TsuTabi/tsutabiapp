@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcards - TsuTabi</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+    
+    <!-- Supabase JS Kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Ortak Çerez ve Consent Mode Yönetimi -->
+    <script src="/cookie-banner.js"></script>
+    
+    <!-- Ortak CSS Dosyası -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <style>
+        /* --- SAYFAYA ÖZEL EK STİLLER --- */
+        .main-content-wrapper { flex: 1; width: 100%; max-width: 36rem; margin: 0 auto; padding: 2rem 1rem 3rem 1rem; display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+        
+        .promo-card { background: var(--card-bg); backdrop-filter: var(--backdrop-blur); border-radius: 1.5rem; border: 2px solid #fbcfe8; padding: 2.5rem 1.5rem; text-align: center; width: 100%; margin-top: 2rem; }
+        .promo-card h2 { font-size: 1.75rem; font-weight: 800; color: var(--text-dark); margin-bottom: 1rem; }
+        .promo-card p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 2rem; }
+
+        .session-progress-container { width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 1rem; padding: 0.875rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .session-info-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-weight: 700; color: var(--text-dark); }
+        .progress-bar-track { width: 100%; height: 8px; background: var(--progress-bg, #e2e8f0); border-radius: 4px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(135deg, var(--primary-anime) 0%, var(--primary-indigo) 100%); width: 0%; transition: width 0.3s ease; border-radius: 4px; }
+        .skip-btn { background: none; border: none; color: var(--primary-indigo); font-size: 0.7rem; font-weight: 700; cursor: pointer; padding: 0.1rem 0.3rem; border-radius: 4px; }
+        .skip-btn:hover { background: var(--btn-hover); color: var(--primary-anime); }
+
+        .flashcard-wrapper { width: 100%; height: 25rem; perspective: 1000px; }
+        
+        /* Tıklama efektini (mavi parlamayı ve focus çerçevesini) kaldıran stiller */
+        .flashcard-scene { user-select: none; position: relative; width: 100%; height: 100%; perspective: 1000px; cursor: pointer; -webkit-tap-highlight-color: transparent; outline: none; }
+        .flashcard { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1); border-radius: 1.25rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08); -webkit-tap-highlight-color: transparent; outline: none; }
+        .flashcard.is-flipped { transform: rotateY(180deg); }
+        .card-face { user-select: none; position: absolute; width: 100%; height: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 1.25rem; border: 1px solid var(--border-color); background: var(--card-bg); backdrop-filter: var(--backdrop-blur); display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 2rem; text-align: center; -webkit-tap-highlight-color: transparent; outline: none; }
+        
+        .card-back { transform: rotateY(180deg); }
+        .kanji-display { font-size: 4rem; font-weight: 800; color: var(--text-dark); margin: auto 0; }
+        .meaning-display { font-size: 1.5rem; font-weight: 700; color: var(--primary-indigo); margin-bottom: 1rem; }
+        .example-box { background: var(--btn-bg); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 0.875rem; width: 100%; font-size: 0.875rem; text-align: left; }
+        .hint-box { background: var(--indigo-bg, #e0e7ff); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 0.5rem 1rem; font-size: 0.8125rem; color: var(--primary-indigo); font-weight: 600; display: none; margin-bottom: 1rem; }
+        .controls-container { width: 100%; display: flex; justify-content: center; margin-top: 0.5rem; }
+        .btn-hint { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-muted); padding: 0.625rem 1.5rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.8125rem; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+        .btn-hint:hover { background: var(--btn-hover); color: var(--text-dark); }
+
+        /* Yükleme Spinner Stili */
+        .loading-spinner-container { width: 100%; padding: 4rem 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; }
+        .spinner { width: 40px; height: 40px; border: 4px solid var(--border-color); border-top: 4px solid var(--primary-anime); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @keyframes slideOutLeft { 0% { transform: translateX(0) scale(1); opacity: 1; } 100% { transform: translateX(-50px) scale(0.95); opacity: 0; } }
+        @keyframes slideInUp { 0% { transform: translateY(40px) scale(0.95); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+        .animate-out { animation: slideOutLeft 0.25s ease-in forwards; }
+        .animate-in { animation: slideInUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    </style>
+</head>
+<body>
+
+    <!-- app.js üzerinden navbar.html buraya yüklenecek -->
+    <div id="navbar-placeholder" style="width: 100%;"></div>
+
+    <!-- Ana İçerik -->
+    <div class="main-content-wrapper">
+        
+        <!-- Yükleniyor Spinner Alanı -->
+        <div id="loadingSpinner" class="loading-spinner-container">
+            <div class="spinner"></div>
+            <span id="loadingText" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Programınız hazırlanıyor...</span>
+        </div>
+
+        <!-- Giriş Yapılmamışsa Çıkacak Alan -->
+        <div id="authRequiredScreen" class="promo-card" style="display: none;">
+            <h2>Aralıklı Hızlı Tekrar ile Kalıcı Öğrenme!</h2>
+            <p>Bugünkü kelime seansınızı tamamlamak ve hafızanızı tazelemek için hemen hesabına giriş yap veya kayıt ol.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <a href="/register" class="btn" style="padding: 0.625rem 1.25rem;">Oturum Aç</a>
+                <a href="/register?type=signup" class="btn btn-anime" style="padding: 0.625rem 1.25rem;">Kayıt Ol</a>
+            </div>
+        </div>
+
+        <!-- Çalışma Alanı -->
+        <div id="flashcardAppContainer" style="width: 100%; display: none; flex-direction: column; gap: 1.25rem;">
+            <div class="session-progress-container">
+                <div class="session-info-row">
+                    <span id="sessionStatusText">Günün Kelimeleri Seansı</span>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span id="sessionCountText">0 / 0</span>
+                        <button onclick="skipSession()" id="skipBtn" class="skip-btn" style="display: none;">Atla ➔</button>
+                    </div>
+                </div>
+                <div class="progress-bar-track">
+                    <div id="progressBarFill" class="progress-bar-fill"></div>
+                </div>
+            </div>
+
+            <div class="flashcard-wrapper">
+                <div class="flashcard-scene" onclick="handleCardClick()">
+                    <div id="flashcardElement" class="flashcard">
+                        <div class="card-face card-front">
+                            <div style="width: 100%;"><div id="hintBoxFront" class="hint-box"></div></div>
+                            <div id="kanjiDisplay" class="kanji-display">-</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">Çevirmek için tıklayın</div>
+                        </div>
+                        <div class="card-face card-back">
+                            <div style="width: 100%;"><div id="hintBoxBack" class="hint-box"></div></div>
+                            <div style="width: 100%; margin: auto 0;">
+                                <div id="meaningDisplay" class="meaning-display">-</div>
+                                <div id="exampleBoxContainer" class="example-box">
+                                    <div id="exKana" style="font-weight: 600; color: var(--text-dark);"></div>
+                                    <div id="exRomaji" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.125rem;"></div>
+                                    <div id="exMeaning" style="font-size: 0.8125rem; color: var(--text-main); margin-top: 0.375rem; font-style: italic;"></div>
+                                </div>
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">Sonraki kelime için tekrar tıklayın ➔</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-container">
+                <button onclick="event.stopPropagation(); toggleHint()" id="hintBtn" class="btn-hint">💡 İpucu</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- app.js üzerinden footer.html buraya yüklenecek -->
+    <div id="footer-placeholder" style="width: 100%; display: flex; flex-direction: column;"></div>
+
+    <!-- Sayfaya Özel Flashcard Mantığı -->
+    <script>
+        let savedWordsList = []; 
+        let sessionQueue = [];
+        let totalSessionLength = 0;
+        let seenCount = 0;
+        let sessionCompleted = false;
+        let isFlipped = false;
+        let hintVisible = false;
+        let isAnimating = false;
+        let currentWord = null;
+        let currentUserId = null;
+        let hasUpdatedCompleted = false;
+        let todayStr = "";
+        let initialFlashcardCompleted = false;
+
+        async function initFlashcardApp() {
+            const spinner = document.getElementById('loadingSpinner');
+            const authScreen = document.getElementById('authRequiredScreen');
+            const appContainer = document.getElementById('flashcardAppContainer');
+            const loadingText = document.getElementById('loadingText');
+
+            const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+            
+            if (sessionError || !session || !session.user) {
+                spinner.style.display = 'none';
+                authScreen.style.display = 'block';
+                appContainer.style.display = 'none';
+                return;
+            }
+
+            const activeUser = session.user;
+            currentUserId = activeUser.id;
+            todayStr = new Date().toLocaleDateString('en-CA');
+
+            const { data: sessionData, error: sessionErr } = await supabaseClient
+                .from('daily_sessions')
+                .select('*')
+                .eq('user_id', currentUserId)
+                .single();
+
+            if (sessionErr || !sessionData || sessionData.date !== todayStr || !sessionData.vocabulary || sessionData.vocabulary.length === 0) {
+                loadingText.innerText = "Programınız hazırlanıyor...";
+                setTimeout(initFlashcardApp, 1500);
+                return;
+            }
+
+            initialFlashcardCompleted = !!sessionData.flashcard_completed;
+
+            spinner.style.display = 'none';
+            authScreen.style.display = 'none';
+            appContainer.style.display = 'flex';
+
+            const wordIds = sessionData.vocabulary;
+
+            const { data: dictData, error: dictError } = await supabaseClient
+                .from('dictionary')
+                .select('*')
+                .in('word_id', wordIds);
+
+            if (dictError || !dictData || dictData.length === 0) {
+                document.getElementById('sessionStatusText').innerText = "Sözlük Hatası";
+                document.getElementById('kanjiDisplay').innerText = "0";
+                document.getElementById('meaningDisplay').innerText = "Günlük kelimelerin sözlük karşılığı bulunamadı!";
+                return;
+            }
+
+            savedWordsList = dictData.map(w => ({
+                word_id: w.word_id,
+                word_kanji: w.kanji,
+                word_kana: w.kana,
+                word_romaji: w.romaji,
+                meaning: w.meaning,
+                example_kana: w.example_kana || w.example_kanji,
+                example_romaji: w.example_romaji,
+                example_meaning: w.example_meaning
+            }));
+
+            if (savedWordsList.length === 0) {
+                document.getElementById('sessionStatusText').innerText = "Kelime Bulunamadı";
+                document.getElementById('kanjiDisplay').innerText = "0";
+                document.getElementById('meaningDisplay').innerText = "Bugün için kelime bulunamadı!";
+                return;
+            }
+
+            totalSessionLength = savedWordsList.length;
+            initSession();
+            loadNextCard(false);
+        }
+
+        async function markFlashcardCompleted() {
+            if (!currentUserId || hasUpdatedCompleted) return;
+            hasUpdatedCompleted = true;
+            initialFlashcardCompleted = true;
+
+            const { error } = await supabaseClient
+                .from('daily_sessions')
+                .update({ flashcard_completed: true })
+                .eq('user_id', currentUserId)
+                .eq('date', todayStr);
+
+            if (error) {
+                console.error("flashcard_completed güncellenirken hata oluştu:", error);
+            }
+        }
+
+        function shuffleArray(array) {
+            let arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function initSession() {
+            sessionQueue = shuffleArray(savedWordsList);
+            seenCount = 0;
+            sessionCompleted = false;
+            hasUpdatedCompleted = false;
+            updateProgressUI();
+        }
+
+        function updateProgressUI() {
+            const countText = document.getElementById('sessionCountText');
+            const statusText = document.getElementById('sessionStatusText');
+            const fill = document.getElementById('progressBarFill');
+            const skipBtn = document.getElementById('skipBtn');
+
+            if (!sessionCompleted) {
+                statusText.innerText = "Günün Kelimeleri Seansı";
+                countText.innerText = `${seenCount} / ${totalSessionLength}`;
+                fill.style.width = totalSessionLength > 0 ? `${(seenCount / totalSessionLength) * 100}%` : '0%';
+                
+                // Başlangıçta true ise Atla butonu görünsün, false ise gizli kalsın
+                skipBtn.style.display = initialFlashcardCompleted ? 'inline-block' : 'none';
+            } else {
+                statusText.innerText = "Sonsuz Mod (Rastgele Tekrar)";
+                countText.innerText = `${totalSessionLength} / ${totalSessionLength}`;
+                fill.style.width = `100%`;
+                skipBtn.style.display = 'none';
+            }
+        }
+
+        function skipSession() {
+            sessionCompleted = true;
+            seenCount = totalSessionLength;
+            sessionQueue = [];
+            updateProgressUI();
+            markFlashcardCompleted();
+        }
+
+        function loadNextCard(animate = true) {
+            const cardEl = document.getElementById('flashcardElement');
+            if (savedWordsList.length === 0) return;
+
+            if (!sessionCompleted) {
+                if (sessionQueue.length > 0) {
+                    currentWord = sessionQueue.pop();
+                    seenCount++;
+                    if (seenCount >= totalSessionLength) {
+                        sessionCompleted = true;
+                        markFlashcardCompleted();
+                    }
+                }
+            } else {
+                const randomIndex = Math.floor(Math.random() * savedWordsList.length);
+                currentWord = savedWordsList[randomIndex];
+            }
+
+            updateProgressUI();
+
+            isFlipped = false;
+            hintVisible = false;
+            cardEl.classList.remove('is-flipped', 'animate-out');
+
+            document.getElementById('hintBoxFront').style.display = 'none';
+            document.getElementById('hintBoxBack').style.display = 'none';
+            document.getElementById('hintBtn').innerText = '💡 İpucu';
+
+            document.getElementById('kanjiDisplay').innerText = currentWord.word_kanji;
+            document.getElementById('hintBoxFront').innerText = `Kana: ${currentWord.word_kana || ''} | Romaji: ${currentWord.word_romaji || ''}`;
+            document.getElementById('hintBoxBack').innerText = `Kana: ${currentWord.word_kana || ''} | Romaji: ${currentWord.word_romaji || ''}`;
+            document.getElementById('meaningDisplay').innerText = currentWord.meaning;
+
+            document.getElementById('exKana').innerText = currentWord.example_kana || '';
+            document.getElementById('exRomaji').innerText = currentWord.example_romaji || '';
+            document.getElementById('exMeaning').innerText = currentWord.example_meaning ? `"${currentWord.example_meaning}"` : '';
+
+            if (animate) {
+                cardEl.classList.add('animate-in');
+                setTimeout(() => {
+                    cardEl.classList.remove('animate-in');
+                    isAnimating = false;
+                }, 300);
+            } else {
+                isAnimating = false;
+            }
+        }
+
+        function handleCardClick() {
+            if (isAnimating || savedWordsList.length === 0) return;
+            const cardEl = document.getElementById('flashcardElement');
+
+            if (!isFlipped) {
+                isFlipped = true;
+                cardEl.classList.add('is-flipped');
+            } else {
+                isAnimating = true;
+                cardEl.classList.add('animate-out');
+                setTimeout(() => {
+                    loadNextCard(true);
+                }, 250);
+            }
+        }
+        window.handleCardClick = handleCardClick;
+
+        function toggleHint() {
+            hintVisible = !hintVisible;
+            const hintFront = document.getElementById('hintBoxFront');
+            const hintBack = document.getElementById('hintBoxBack');
+            const hintBtn = document.getElementById('hintBtn');
+
+            if (hintVisible) {
+                hintFront.style.display = 'block';
+                hintBack.style.display = 'block';
+                hintBtn.innerText = '💡 İpucu Gizle';
+            } else {
+                hintFront.style.display = 'none';
+                hintBack.style.display = 'none';
+                hintBtn.innerText = '💡 İpucu';
+            }
+        }
+        window.toggleHint = toggleHint;
+        window.skipSession = skipSession;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            initFlashcardApp();
+        });
+    </script>
+    
+    <!-- Ortak app.js Entegrasyonu -->
+    <script src="/app.js"></script>
+</body>
+</html>
